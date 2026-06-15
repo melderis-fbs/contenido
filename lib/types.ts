@@ -76,6 +76,12 @@ export interface Post {
   linkPublicado: string | null
   notas: string
   notionUrl: string
+  // Métricas post-publicación
+  alcance: number | null
+  guardados: number | null
+  compartidos: number | null
+  comentarios: number | null
+  leadMagnets: number | null
 }
 
 export type CreatePostInput = Omit<Post, 'id' | 'notionUrl'>

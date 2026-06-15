@@ -37,6 +37,11 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
     linkMaterial: post.linkMaterial,
     linkPublicado: post.linkPublicado,
     notas: post.notas,
+    alcance: post.alcance,
+    guardados: post.guardados,
+    compartidos: post.compartidos,
+    comentarios: post.comentarios,
+    leadMagnets: post.leadMagnets,
   })
 
   const [saving, setSaving] = useState(false)
@@ -61,6 +66,11 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
       linkMaterial: post.linkMaterial,
       linkPublicado: post.linkPublicado,
       notas: post.notas,
+      alcance: post.alcance,
+      guardados: post.guardados,
+      compartidos: post.compartidos,
+      comentarios: post.comentarios,
+      leadMagnets: post.leadMagnets,
     })
   }, [post.id])
 
@@ -394,6 +404,61 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
               className="input resize-none mt-1"
             />
           </div>
+
+          {/* Métricas de rendimiento */}
+          <div>
+            <div
+              className="flex items-center gap-2 py-2 my-1"
+              style={{ borderTop: '1px solid #e7e3d7' }}
+            >
+              <span className="text-xs font-semibold" style={{ color: '#282727' }}>
+                Rendimiento
+              </span>
+              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#e7e3d7', color: '#9a877d' }}>
+                post-publicación
+              </span>
+            </div>
+            <p className="text-[11px] mb-3" style={{ color: '#9a877d' }}>
+              Las métricas que más importan: guardados, compartidos y leads.
+            </p>
+            <div className="grid grid-cols-2 gap-3">
+              <MetricInput
+                label="Alcance"
+                value={form.alcance}
+                onChange={(v) => set('alcance', v)}
+                placeholder="0"
+              />
+              <MetricInput
+                label="Comentarios"
+                value={form.comentarios}
+                onChange={(v) => set('comentarios', v)}
+                placeholder="0"
+              />
+              <MetricInput
+                label="Guardados ⭐"
+                value={form.guardados}
+                onChange={(v) => set('guardados', v)}
+                placeholder="0"
+                highlight
+              />
+              <MetricInput
+                label="Compartidos ⭐"
+                value={form.compartidos}
+                onChange={(v) => set('compartidos', v)}
+                placeholder="0"
+                highlight
+              />
+            </div>
+            <div className="mt-3">
+              <MetricInput
+                label="Lead magnets / DMs ⭐⭐"
+                value={form.leadMagnets}
+                onChange={(v) => set('leadMagnets', v)}
+                placeholder="0"
+                highlight
+              />
+            </div>
+          </div>
         </div>
 
         {/* Footer */}
@@ -508,6 +573,35 @@ function ChevronIcon() {
     >
       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
     </svg>
+  )
+}
+
+function MetricInput({
+  label,
+  value,
+  onChange,
+  placeholder,
+  highlight = false,
+}: {
+  label: string
+  value: number | null
+  onChange: (v: number | null) => void
+  placeholder?: string
+  highlight?: boolean
+}) {
+  return (
+    <div>
+      <label className="label">{label}</label>
+      <input
+        type="number"
+        min="0"
+        value={value ?? ''}
+        onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
+        placeholder={placeholder}
+        className="input mt-1"
+        style={highlight && value !== null ? { borderColor: '#c6b297' } : {}}
+      />
+    </div>
   )
 }
 

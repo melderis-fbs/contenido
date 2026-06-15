@@ -40,6 +40,12 @@ function extractUrl(prop: any): string | null {
   return prop?.url ?? null
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function extractNumber(prop: any): number | null {
+  if (prop?.type === 'number') return prop.number ?? null
+  return null
+}
+
 export function mapPageToPost(page: PageObjectResponse): Post {
   const p = page.properties
   return {
@@ -56,6 +62,11 @@ export function mapPageToPost(page: PageObjectResponse): Post {
     linkPublicado: extractUrl(p['Link publicado']),
     notas: extractRichText(p['Notas']),
     notionUrl: page.url,
+    alcance: extractNumber(p['Alcance']),
+    guardados: extractNumber(p['Guardados']),
+    compartidos: extractNumber(p['Compartidos']),
+    comentarios: extractNumber(p['Comentarios']),
+    leadMagnets: extractNumber(p['Lead magnets']),
   }
 }
 
@@ -95,6 +106,21 @@ function buildProperties(data: Partial<CreatePostInput>): Record<string, unknown
   if (data.notas !== undefined) {
     props['Notas'] = { rich_text: toRichText(data.notas) }
   }
+  if (data.alcance !== undefined) {
+    props['Alcance'] = { number: data.alcance }
+  }
+  if (data.guardados !== undefined) {
+    props['Guardados'] = { number: data.guardados }
+  }
+  if (data.compartidos !== undefined) {
+    props['Compartidos'] = { number: data.compartidos }
+  }
+  if (data.comentarios !== undefined) {
+    props['Comentarios'] = { number: data.comentarios }
+  }
+  if (data.leadMagnets !== undefined) {
+    props['Lead magnets'] = { number: data.leadMagnets }
+  }
 
   return props
 }
@@ -110,7 +136,6 @@ export async function getAllPosts(): Promise<Post[]> {
   let cursor: string | undefined
 
   do {
-    // Notion SDK v5: databases.query → dataSources.query
     const response = await notion.dataSources.query({
       data_source_id: DATA_SOURCE_ID,
       start_cursor: cursor,

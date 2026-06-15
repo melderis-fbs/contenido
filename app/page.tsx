@@ -9,16 +9,39 @@ import FilterBar from '@/components/FilterBar'
 import PostEditor from '@/components/PostEditor'
 import KanbanView from '@/components/KanbanView'
 import ChannelView from '@/components/ChannelView'
+import ReportView from '@/components/ReportView'
 
-type Tab = 'tablero' | 'estado' | 'canal'
+type Tab = 'tablero' | 'estado' | 'canal' | 'reporte'
 
 const TABS: { id: Tab; label: string }[] = [
   { id: 'tablero', label: 'Tablero' },
   { id: 'estado', label: 'Por estado' },
   { id: 'canal', label: 'Por canal' },
+  { id: 'reporte', label: 'Reporte' },
 ]
 
 const emptyFilters: WeekFilters = { canales: [], estados: [], pilares: [], search: '' }
+
+const EMPTY_POST = (canal: Canal, fecha: string): Post => ({
+  id: '',
+  titulo: '',
+  canal,
+  formato: null,
+  estado: 'Idea',
+  pilar: null,
+  fecha,
+  caption: '',
+  hashtags: '',
+  linkMaterial: null,
+  linkPublicado: null,
+  notas: '',
+  notionUrl: '',
+  alcance: null,
+  guardados: null,
+  compartidos: null,
+  comentarios: null,
+  leadMagnets: null,
+})
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([])
@@ -50,7 +73,6 @@ export default function Home() {
     loadPosts()
   }, [loadPosts])
 
-  // Filtered posts (all views)
   const filteredPosts = useMemo(() => {
     return posts.filter((p) => {
       if (filters.canales.length && (!p.canal || !filters.canales.includes(p.canal))) return false
@@ -65,7 +87,6 @@ export default function Home() {
     })
   }, [posts, filters])
 
-  // Posts in the current week (for metrics)
   const weekPosts = useMemo(() => {
     const weekEnd = endOfWeek(currentWeekStart, { weekStartsOn: 1 })
     return filteredPosts.filter((p) => {
@@ -82,7 +103,6 @@ export default function Home() {
     Array.isArray(v) ? v.length > 0 : v !== '',
   )
 
-  // CRUD handlers
   const handleCreate = useCallback(
     async (data: Omit<Post, 'id' | 'notionUrl'>): Promise<Post> => {
       const res = await fetch('/api/posts', {
@@ -100,7 +120,6 @@ export default function Home() {
 
   const handleUpdate = useCallback(
     async (id: string, updates: Partial<Post>): Promise<void> => {
-      // Optimistic
       setPosts((prev) => prev.map((p) => (p.id === id ? { ...p, ...updates } : p)))
       try {
         const res = await fetch(`/api/posts/${id}`, {
@@ -112,7 +131,6 @@ export default function Home() {
         const { post } = await res.json()
         setPosts((prev) => prev.map((p) => (p.id === id ? post : p)))
       } catch {
-        // Rollback
         loadPosts()
         throw new Error('No se pudo actualizar')
       }
@@ -140,21 +158,7 @@ export default function Home() {
   )
 
   const openNewPost = useCallback((canal: Canal, fecha: string) => {
-    setEditingPost({
-      id: '',
-      titulo: '',
-      canal,
-      formato: null,
-      estado: 'Idea',
-      pilar: null,
-      fecha,
-      caption: '',
-      hashtags: '',
-      linkMaterial: null,
-      linkPublicado: null,
-      notas: '',
-      notionUrl: '',
-    })
+    setEditingPost(EMPTY_POST(canal, fecha))
   }, [])
 
   async function handleDuplicate(canal: Canal) {
@@ -171,6 +175,11 @@ export default function Home() {
       linkMaterial: editingPost.linkMaterial,
       linkPublicado: editingPost.linkPublicado,
       notas: editingPost.notas,
+      alcance: null,
+      guardados: null,
+      compartidos: null,
+      comentarios: null,
+      leadMagnets: null,
     })
     setEditingPost(newPost)
   }
@@ -179,6 +188,8 @@ export default function Home() {
     await fetch('/api/auth', { method: 'DELETE' })
     window.location.href = '/login'
   }
+
+  const showWeekControls = tab !== 'reporte'
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -228,15 +239,17 @@ export default function Home() {
         </div>
       </header>
 
-      {/* Metrics + week nav */}
-      <WeekMetrics
-        posts={weekPosts}
-        currentWeekStart={currentWeekStart}
-        isFiltered={isFiltered}
-        onPrevWeek={() => setCurrentWeekStart((w) => subWeeks(w, 1))}
-        onNextWeek={() => setCurrentWeekStart((w) => addWeeks(w, 1))}
-        onToday={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
-      />
+      {/* Metrics + week nav (hidden on reporte tab) */}
+      {showWeekControls && (
+        <WeekMetrics
+          posts={weekPosts}
+          currentWeekStart={currentWeekStart}
+          isFiltered={isFiltered}
+          onPrevWeek={() => setCurrentWeekStart((w) => subWeeks(w, 1))}
+          onNextWeek={() => setCurrentWeekStart((w) => addWeeks(w, 1))}
+          onToday={() => setCurrentWeekStart(startOfWeek(new Date(), { weekStartsOn: 1 }))}
+        />
+      )}
 
       {/* Tabs */}
       <div
@@ -258,19 +271,24 @@ export default function Home() {
         ))}
       </div>
 
-      {/* Filters */}
-      <FilterBar filters={filters} onChange={setFilters} />
+      {/* Filters (hidden on reporte tab) */}
+      {showWeekControls && <FilterBar filters={filters} onChange={setFilters} />}
 
       {/* Content area */}
       <div className="flex-1 overflow-auto">
         {loading ? (
-          <div className="flex flex-col items-center justify-center h-full gap-3 text-sm" style={{ color: '#9a877d' }}>
+          <div
+            className="flex flex-col items-center justify-center h-full gap-3 text-sm"
+            style={{ color: '#9a877d' }}
+          >
             <div className="w-5 h-5 border-2 border-current border-t-transparent rounded-full animate-spin" />
             Conectando con Notion...
           </div>
         ) : loadError ? (
           <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
-            <p className="text-sm" style={{ color: '#9a877d' }}>{loadError}</p>
+            <p className="text-sm" style={{ color: '#9a877d' }}>
+              {loadError}
+            </p>
             <button
               onClick={loadPosts}
               className="px-4 py-2 rounded-lg text-sm border transition-colors hover:bg-surface"
@@ -299,6 +317,9 @@ export default function Home() {
             )}
             {tab === 'canal' && (
               <ChannelView posts={filteredPosts} onEditPost={setEditingPost} />
+            )}
+            {tab === 'reporte' && (
+              <ReportView posts={posts} onEditPost={setEditingPost} />
             )}
           </>
         )}
