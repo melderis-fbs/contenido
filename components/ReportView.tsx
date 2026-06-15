@@ -4,12 +4,52 @@ import { useState, useMemo } from 'react'
 import { format, startOfMonth, endOfMonth, subMonths, addMonths, isWithinInterval } from 'date-fns'
 import { es } from 'date-fns/locale'
 import type { Post } from '@/lib/types'
-import { CANAL_COLORS, ESTADO_COLORS } from '@/lib/types'
+import { CANAL_COLORS } from '@/lib/types'
 
 interface Props {
   posts: Post[]
   onEditPost: (post: Post) => void
 }
+
+function exportPostsAsCSV(posts: Post[], monthLabel: string) {
+  const headers = ['Fecha', 'Canal', 'Formato', 'Pilar', 'Título', 'Link publicado']
+  const rows = posts.map((p) => [
+    p.fecha ? format(new Date(p.fecha), 'dd/MM/yyyy') : '',
+    p.canal ?? '',
+    p.formato ?? '',
+    p.pilar ?? '',
+    `"${(p.titulo || '').replace(/"/g, '""')}"`,
+    p.linkPublicado ?? '',
+  ])
+  const csv = [headers.join(','), ...rows.map((r) => r.join(','))].join('\n')
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `founders-posts-${monthLabel.replace(/\s/g, '-')}.csv`
+  a.click()
+  URL.revokeObjectURL(url)
+}
+
+const CLAUDE_PROMPT = (monthLabel: string) => `Sos la analista de contenido de Founders / Vicky Becci (mentoría para coaches y consultores en Argentina).
+
+Te adjunto dos archivos:
+1. **founders-posts-${monthLabel}.csv** — los posts publicados en ${monthLabel} con su canal, formato, pilar y título
+2. **meta-metricas.csv** (o similar) — las métricas descargadas de Meta/Instagram con alcance, guardados, compartidos, comentarios y DMs/leads
+
+Cruzá ambos archivos por fecha y/o título y respondé estas 4 preguntas:
+
+1. ¿Cuáles 3 piezas rindieron MEJOR y qué tienen en común?
+2. ¿Cuáles 3 rindieron PEOR y qué tienen en común?
+3. ¿Qué formato tracciona más en cada red?
+4. ¿Qué contenido generó más lead magnets / consultas (no solo likes)?
+
+Cerrá con UNA recomendación accionable: "el mes que viene, más de X y menos de Y porque..."
+
+Reglas:
+- Las métricas que más importan son guardados, compartidos y leads — no los likes
+- Tono rioplatense, directo, sin intro corporativa
+- Bullets y números concretos`
 
 export default function ReportView({ posts, onEditPost }: Props) {
   const [currentMonth, setCurrentMonth] = useState(() => startOfMonth(new Date()))
@@ -19,6 +59,19 @@ export default function ReportView({ posts, onEditPost }: Props) {
   const [slackStatus, setSlackStatus] = useState<'idle' | 'sending' | 'sent' | 'error'>('idle')
   const [slackError, setSlackError] = useState<string | null>(null)
   const [lastReport, setLastReport] = useState<string | null>(null)
+  const [showPrompt, setShowPrompt] = useState(false)
+  const [promptCopied, setPromptCopied] = useState(false)
+
+  function handleExportCSV() {
+    exportPostsAsCSV(monthPosts, monthKey)
+  }
+
+  function handleCopyPrompt() {
+    navigator.clipboard.writeText(CLAUDE_PROMPT(monthLabel)).then(() => {
+      setPromptCopied(true)
+      setTimeout(() => setPromptCopied(false), 2000)
+    })
+  }
 
   const monthLabel = format(currentMonth, 'MMMM yyyy', { locale: es })
   const monthKey = format(currentMonth, 'yyyy-MM')
@@ -240,7 +293,93 @@ export default function ReportView({ posts, onEditPost }: Props) {
         </div>
       )}
 
-      {/* Report generator */}
+      {/* Export + Claude workflow */}
+      {monthPosts.length > 0 && (
+        <div
+          className="rounded-xl p-5 space-y-4"
+          style={{ background: '#f3f1ea', border: '1px solid #e7e3d7' }}
+        >
+          <div>
+            <h3 className="text-sm font-semibold">Analizar con Claude</h3>
+            <p className="text-xs mt-1" style={{ color: '#9a877d' }}>
+              Descargá los posts del mes y cruzalos con el CSV de métricas de Meta en claude.ai.
+            </p>
+          </div>
+
+          <ol className="space-y-3 text-sm" style={{ color: '#282727' }}>
+            <li className="flex gap-3">
+              <span
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+                style={{ background: '#c6b297', color: 'white' }}
+              >1</span>
+              <div>
+                <p className="font-medium">Exportá los posts del mes</p>
+                <button
+                  onClick={handleExportCSV}
+                  disabled={monthPosts.length === 0}
+                  className="mt-1.5 flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium border transition-colors hover:bg-white disabled:opacity-40"
+                  style={{ borderColor: '#e7e3d7', color: '#282727' }}
+                >
+                  ↓ founders-posts-{monthKey}.csv
+                  <span style={{ color: '#9a877d' }}>({monthPosts.length} posts)</span>
+                </button>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+                style={{ background: '#c6b297', color: 'white' }}
+              >2</span>
+              <div>
+                <p className="font-medium">Descargá las métricas de Meta</p>
+                <p className="text-xs mt-0.5" style={{ color: '#9a877d' }}>
+                  Meta Business Suite → Insights → Exportar datos del período
+                </p>
+              </div>
+            </li>
+
+            <li className="flex gap-3">
+              <span
+                className="w-5 h-5 rounded-full flex items-center justify-center text-[11px] font-bold flex-shrink-0 mt-0.5"
+                style={{ background: '#c6b297', color: 'white' }}
+              >3</span>
+              <div>
+                <p className="font-medium">Subí los dos archivos a Claude y usá este prompt</p>
+                <div className="flex items-center gap-2 mt-1.5">
+                  <button
+                    onClick={() => setShowPrompt((v) => !v)}
+                    className="text-xs px-3 py-1.5 rounded-lg border transition-colors hover:bg-white"
+                    style={{ borderColor: '#e7e3d7', color: '#9a877d' }}
+                  >
+                    {showPrompt ? 'Ocultar prompt' : 'Ver prompt'}
+                  </button>
+                  <button
+                    onClick={handleCopyPrompt}
+                    className="text-xs px-3 py-1.5 rounded-lg border transition-colors hover:bg-white"
+                    style={{
+                      borderColor: promptCopied ? '#1D9E75' : '#e7e3d7',
+                      color: promptCopied ? '#1D9E75' : '#282727',
+                    }}
+                  >
+                    {promptCopied ? '✓ Copiado' : 'Copiar prompt'}
+                  </button>
+                </div>
+                {showPrompt && (
+                  <pre
+                    className="mt-3 p-3 rounded-lg text-[11px] leading-relaxed whitespace-pre-wrap overflow-auto max-h-64"
+                    style={{ background: 'white', border: '1px solid #e7e3d7', color: '#282727' }}
+                  >
+                    {CLAUDE_PROMPT(monthLabel)}
+                  </pre>
+                )}
+              </div>
+            </li>
+          </ol>
+        </div>
+      )}
+
+      {/* Report generator (requires API key) */}
       {monthPosts.length > 0 && (
         <div className="space-y-4">
           <div
@@ -248,9 +387,9 @@ export default function ReportView({ posts, onEditPost }: Props) {
             style={{ borderBottom: '1px solid #e7e3d7' }}
           >
             <div>
-              <h3 className="text-sm font-semibold">Reporte mensual</h3>
+              <h3 className="text-sm font-semibold">Generar reporte automático</h3>
               <p className="text-xs mt-0.5" style={{ color: '#9a877d' }}>
-                Claude analiza qué funcionó y qué no, y da una recomendación accionable.
+                Requiere <code className="px-1 rounded" style={{ background: '#e7e3d7' }}>ANTHROPIC_API_KEY</code> configurada. Claude genera el análisis sin salir de la app.
               </p>
             </div>
             <button
