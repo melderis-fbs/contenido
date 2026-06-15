@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import {
   format,
   startOfMonth,
@@ -408,6 +408,9 @@ export default function ReportView({ posts, onEditPost }: Props) {
             copied={copied === 'weekly'}
             metaStep={false}
           />
+
+          {/* Save report to Notion */}
+          <WeeklyReportSave weekLabel={weekLabel} weekDisplayLabel={weekDisplayLabel} />
         </>
       )}
 
@@ -767,5 +770,104 @@ function MetricCell({ value, highlight = false }: { value: number | null; highli
     <span className="text-right tabular-nums" style={{ color: value !== null && highlight ? '#282727' : '#9a877d' }}>
       {value !== null ? value.toLocaleString('es-AR') : '—'}
     </span>
+  )
+}
+
+function WeeklyReportSave({ weekLabel, weekDisplayLabel }: { weekLabel: string; weekDisplayLabel: string }) {
+  const [text, setText] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [saved, setSaved] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [configured, setConfigured] = useState<boolean | null>(null)
+
+  useEffect(() => {
+    setText('')
+    setSaved(false)
+    setError(null)
+    setLoading(true)
+    fetch(`/api/reportes?week=${weekLabel}`)
+      .then((r) => r.json())
+      .then((data) => {
+        setConfigured(data.configured ?? true)
+        if (data.report?.content) setText(data.report.content)
+      })
+      .catch(() => setConfigured(null))
+      .finally(() => setLoading(false))
+  }, [weekLabel])
+
+  async function handleSave() {
+    if (!text.trim()) return
+    setSaving(true)
+    setError(null)
+    setSaved(false)
+    try {
+      const res = await fetch('/api/reportes', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ weekStart: weekLabel, content: text }),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error)
+      setSaved(true)
+      setTimeout(() => setSaved(false), 4000)
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Error guardando')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (configured === false) {
+    return (
+      <div className="rounded-xl p-5 space-y-2" style={{ background: '#f3f1ea', border: '1px solid #e7e3d7' }}>
+        <h3 className="text-sm font-semibold">Guardar reporte en Notion</h3>
+        <p className="text-xs leading-relaxed" style={{ color: '#9a877d' }}>
+          Para guardar reportes en Notion, creá una página <strong>"Reportes"</strong> en tu workspace,
+          compartila con la integración, y agregá su ID como{' '}
+          <code className="px-1 rounded" style={{ background: '#e7e3d7' }}>NOTION_REPORTS_PAGE_ID</code>
+          {' '}en las variables de entorno de Vercel.
+        </p>
+      </div>
+    )
+  }
+
+  return (
+    <div className="rounded-xl p-5 space-y-4" style={{ background: '#f3f1ea', border: '1px solid #e7e3d7' }}>
+      <div>
+        <h3 className="text-sm font-semibold">Guardar reporte en Notion</h3>
+        <p className="text-xs mt-0.5" style={{ color: '#9a877d' }}>
+          Pegá el análisis que generó Claude y quedá guardado como <em>Reporte {weekLabel}</em> en tu Notion.
+        </p>
+      </div>
+
+      {loading ? (
+        <div className="h-32 flex items-center justify-center">
+          <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" style={{ color: '#9a877d' }} />
+        </div>
+      ) : (
+        <>
+          <textarea
+            value={text}
+            onChange={(e) => { setText(e.target.value); setSaved(false) }}
+            placeholder={`Pegá acá el reporte de la semana del ${weekDisplayLabel}...`}
+            rows={10}
+            className="w-full rounded-xl p-4 text-sm leading-relaxed resize-y outline-none"
+            style={{ background: 'white', border: '1px solid #e7e3d7', color: '#282727' }}
+          />
+          <div className="flex items-center gap-3 flex-wrap">
+            <button
+              onClick={handleSave}
+              disabled={saving || !text.trim()}
+              className="px-4 py-2 rounded-lg text-sm font-medium text-white disabled:opacity-50 transition-opacity"
+              style={{ background: saved ? '#1D9E75' : '#282727' }}
+            >
+              {saving ? 'Guardando...' : saved ? '✓ Guardado en Notion' : 'Guardar en Notion'}
+            </button>
+            {error && <span className="text-xs" style={{ color: '#ef4444' }}>{error}</span>}
+          </div>
+        </>
+      )}
+    </div>
   )
 }

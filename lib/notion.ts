@@ -175,3 +175,88 @@ export async function updatePost(id: string, data: UpdatePostInput): Promise<Pos
 export async function archivePost(id: string): Promise<void> {
   await notion.pages.update({ page_id: id, in_trash: true })
 }
+
+// ─── Weekly reports ───────────────────────────────────────────────────────────
+
+const REPORTS_PAGE_ID = process.env.NOTION_REPORTS_PAGE_ID
+
+function weekReportTitle(weekStart: string): string {
+  return `Reporte ${weekStart}`
+}
+
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function textToNotionBlocks(text: string): any[] {
+  return text
+    .split(/\n{2,}/)
+    .filter((s) => s.trim())
+    .map((para) => ({
+      object: 'block',
+      type: 'paragraph',
+      paragraph: { rich_text: toRichText(para) },
+    }))
+}
+
+export async function getWeekReport(
+  weekStart: string,
+): Promise<{ id: string; content: string } | null> {
+  if (!REPORTS_PAGE_ID) return null
+  const title = weekReportTitle(weekStart)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listRes: any = await notion.blocks.children.list({ block_id: REPORTS_PAGE_ID })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const reportBlock = listRes.results.find(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (b: any) => b.type === 'child_page' && b.child_page?.title === title,
+  )
+  if (!reportBlock) return null
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const contentRes: any = await notion.blocks.children.list({ block_id: reportBlock.id })
+  const content = contentRes.results
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .filter((b: any) => b.type === 'paragraph')
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    .map((b: any) => b.paragraph?.rich_text?.map((rt: any) => rt.plain_text).join('') ?? '')
+    .filter(Boolean)
+    .join('\n\n')
+
+  return { id: reportBlock.id, content }
+}
+
+export async function saveWeekReport(weekStart: string, content: string): Promise<void> {
+  if (!REPORTS_PAGE_ID) throw new Error('NOTION_REPORTS_PAGE_ID no configurado')
+  const title = weekReportTitle(weekStart)
+  const blocks = textToNotionBlocks(content)
+
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const listRes: any = await notion.blocks.children.list({ block_id: REPORTS_PAGE_ID })
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const existing = listRes.results.find(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    (b: any) => b.type === 'child_page' && b.child_page?.title === title,
+  )
+
+  if (existing) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const contentRes: any = await notion.blocks.children.list({ block_id: existing.id })
+    for (const block of contentRes.results) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await notion.blocks.delete({ block_id: (block as any).id })
+    }
+    await notion.blocks.children.append({
+      block_id: existing.id,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      children: blocks as any,
+    })
+  } else {
+    await notion.pages.create({
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      parent: { type: 'page_id', page_id: REPORTS_PAGE_ID } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      properties: { title: { title: [{ text: { content: title } }] } } as any,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      children: blocks as any,
+    })
+  }
+}
