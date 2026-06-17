@@ -61,6 +61,7 @@ export function mapPageToPost(page: PageObjectResponse): Post {
     linkMaterial: extractUrl(p['Link material']),
     linkPublicado: extractUrl(p['Link publicado']),
     notas: extractRichText(p['Notas']),
+    notasVicky: extractRichText(p['Notas Vicky']),
     notionUrl: page.url,
     alcance: extractNumber(p['Alcance']),
     guardados: extractNumber(p['Guardados']),
@@ -105,6 +106,9 @@ function buildProperties(data: Partial<CreatePostInput>): Record<string, unknown
   }
   if (data.notas !== undefined) {
     props['Notas'] = { rich_text: toRichText(data.notas) }
+  }
+  if (data.notasVicky !== undefined) {
+    props['Notas Vicky'] = { rich_text: toRichText(data.notasVicky) }
   }
   if (data.alcance !== undefined) {
     props['Alcance'] = { number: data.alcance }

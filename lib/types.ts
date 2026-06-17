@@ -75,6 +75,7 @@ export interface Post {
   linkMaterial: string | null
   linkPublicado: string | null
   notas: string
+  notasVicky: string
   notionUrl: string
   // Métricas post-publicación
   alcance: number | null

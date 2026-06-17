@@ -37,6 +37,7 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
     linkMaterial: post.linkMaterial,
     linkPublicado: post.linkPublicado,
     notas: post.notas,
+    notasVicky: post.notasVicky,
     alcance: post.alcance,
     guardados: post.guardados,
     compartidos: post.compartidos,
@@ -50,6 +51,7 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
   const [error, setError] = useState<string | null>(null)
   const [showDupMenu, setShowDupMenu] = useState(false)
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showPreview, setShowPreview] = useState(false)
   const dupRef = useRef<HTMLDivElement>(null)
 
   // Sync form when post changes externally
@@ -66,6 +68,7 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
       linkMaterial: post.linkMaterial,
       linkPublicado: post.linkPublicado,
       notas: post.notas,
+      notasVicky: post.notasVicky,
       alcance: post.alcance,
       guardados: post.guardados,
       compartidos: post.compartidos,
@@ -192,6 +195,17 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
               </a>
             )}
             <button
+              onClick={() => setShowPreview((v) => !v)}
+              className="text-[11px] px-2 py-1 rounded border transition-colors hover:bg-surface"
+              style={{
+                borderColor: showPreview ? '#c6b297' : '#e7e3d7',
+                color: showPreview ? '#282727' : '#9a877d',
+                background: showPreview ? '#c6b29715' : 'transparent',
+              }}
+            >
+              {showPreview ? 'Editar' : 'Preview'}
+            </button>
+            <button
               onClick={onClose}
               className="w-7 h-7 flex items-center justify-center rounded-lg transition-colors hover:bg-surface"
               style={{ color: '#9a877d' }}
@@ -204,261 +218,288 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
 
         {/* Form */}
         <div className="flex-1 overflow-y-auto px-5 py-5 space-y-4">
-          {/* Title */}
-          <div>
-            <label className="label">Hook / Título</label>
-            <input
-              type="text"
-              value={form.titulo}
-              onChange={(e) => set('titulo', e.target.value)}
-              placeholder="El gancho del post..."
-              className="input mt-1"
-              autoFocus={isNew}
-            />
-          </div>
-
-          {/* Canal + Formato */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Canal</label>
-              <div className="relative mt-1">
-                <select
-                  value={form.canal ?? ''}
-                  onChange={(e) => set('canal', (e.target.value as Canal) || null)}
-                  className="input appearance-none pr-7"
-                  style={
-                    form.canal
-                      ? { borderColor: CANAL_COLORS[form.canal], color: CANAL_COLORS[form.canal] }
-                      : {}
-                  }
-                >
-                  <option value="">—</option>
-                  {CANALES.map((c) => (
-                    <option key={c} value={c}>
-                      {c}
-                    </option>
-                  ))}
-                </select>
-                <ChevronIcon />
+          {showPreview ? (
+            <PostPreview form={form} />
+          ) : (
+            <>
+              {/* Title */}
+              <div>
+                <label className="label">Hook / Título</label>
+                <input
+                  type="text"
+                  value={form.titulo}
+                  onChange={(e) => set('titulo', e.target.value)}
+                  placeholder="El gancho del post..."
+                  className="input mt-1"
+                  autoFocus={isNew}
+                />
               </div>
-            </div>
 
-            <div>
-              <label className="label">Formato</label>
-              <div className="relative mt-1">
-                <select
-                  value={form.formato ?? ''}
-                  onChange={(e) => set('formato', (e.target.value as Formato) || null)}
-                  className="input appearance-none pr-7"
-                >
-                  <option value="">—</option>
-                  {FORMATOS.map((f) => (
-                    <option key={f} value={f}>
-                      {f}
-                    </option>
-                  ))}
-                </select>
-                <ChevronIcon />
+              {/* Canal + Formato */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Canal</label>
+                  <div className="relative mt-1">
+                    <select
+                      value={form.canal ?? ''}
+                      onChange={(e) => set('canal', (e.target.value as Canal) || null)}
+                      className="input appearance-none pr-7"
+                      style={
+                        form.canal
+                          ? { borderColor: CANAL_COLORS[form.canal], color: CANAL_COLORS[form.canal] }
+                          : {}
+                      }
+                    >
+                      <option value="">—</option>
+                      {CANALES.map((c) => (
+                        <option key={c} value={c}>
+                          {c}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronIcon />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Formato</label>
+                  <div className="relative mt-1">
+                    <select
+                      value={form.formato ?? ''}
+                      onChange={(e) => set('formato', (e.target.value as Formato) || null)}
+                      className="input appearance-none pr-7"
+                    >
+                      <option value="">—</option>
+                      {FORMATOS.map((f) => (
+                        <option key={f} value={f}>
+                          {f}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronIcon />
+                  </div>
+                </div>
               </div>
-            </div>
-          </div>
 
-          {/* Estado + Pilar */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="label">Estado</label>
-              <div className="relative mt-1">
-                <select
-                  value={form.estado ?? ''}
-                  onChange={(e) => set('estado', (e.target.value as Estado) || null)}
-                  className="input appearance-none pr-7"
-                  style={
-                    form.estado
-                      ? { borderColor: ESTADO_COLORS[form.estado], color: ESTADO_COLORS[form.estado] }
-                      : {}
-                  }
-                >
-                  <option value="">—</option>
-                  {ESTADOS.map((e) => (
-                    <option key={e} value={e}>
-                      {e}
-                    </option>
-                  ))}
-                </select>
-                <ChevronIcon />
+              {/* Estado + Pilar */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="label">Estado</label>
+                  <div className="relative mt-1">
+                    <select
+                      value={form.estado ?? ''}
+                      onChange={(e) => set('estado', (e.target.value as Estado) || null)}
+                      className="input appearance-none pr-7"
+                      style={
+                        form.estado
+                          ? { borderColor: ESTADO_COLORS[form.estado], color: ESTADO_COLORS[form.estado] }
+                          : {}
+                      }
+                    >
+                      <option value="">—</option>
+                      {ESTADOS.map((e) => (
+                        <option key={e} value={e}>
+                          {e}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronIcon />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="label">Pilar</label>
+                  <div className="relative mt-1">
+                    <select
+                      value={form.pilar ?? ''}
+                      onChange={(e) => set('pilar', (e.target.value as Pilar) || null)}
+                      className="input appearance-none pr-7"
+                    >
+                      <option value="">—</option>
+                      {PILARES.map((p) => (
+                        <option key={p} value={p}>
+                          {p}
+                        </option>
+                      ))}
+                    </select>
+                    <ChevronIcon />
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div>
-              <label className="label">Pilar</label>
-              <div className="relative mt-1">
-                <select
-                  value={form.pilar ?? ''}
-                  onChange={(e) => set('pilar', (e.target.value as Pilar) || null)}
-                  className="input appearance-none pr-7"
-                >
-                  <option value="">—</option>
-                  {PILARES.map((p) => (
-                    <option key={p} value={p}>
-                      {p}
-                    </option>
-                  ))}
-                </select>
-                <ChevronIcon />
+              {/* Fecha */}
+              <div>
+                <label className="label">Fecha y hora</label>
+                <input
+                  type="datetime-local"
+                  value={toDatetimeLocal(form.fecha)}
+                  onChange={(e) => set('fecha', e.target.value || null)}
+                  className="input mt-1"
+                />
               </div>
-            </div>
-          </div>
 
-          {/* Fecha */}
-          <div>
-            <label className="label">Fecha y hora</label>
-            <input
-              type="datetime-local"
-              value={toDatetimeLocal(form.fecha)}
-              onChange={(e) => set('fecha', e.target.value || null)}
-              className="input mt-1"
-            />
-          </div>
+              {/* Caption */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="label">Caption</label>
+                  <button
+                    onClick={handleGenerateCaption}
+                    disabled={generatingCaption || !form.titulo}
+                    className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all disabled:opacity-40"
+                    style={{ borderColor: '#c6b297', color: '#9a877d' }}
+                    title={!form.titulo ? 'Agregá un título primero' : 'Generar con IA'}
+                  >
+                    {generatingCaption ? (
+                      <>
+                        <SpinnerIcon />
+                        Generando...
+                      </>
+                    ) : (
+                      <>✦ Generar caption</>
+                    )}
+                  </button>
+                </div>
+                <textarea
+                  value={form.caption}
+                  onChange={(e) => set('caption', e.target.value)}
+                  placeholder="El caption del post..."
+                  rows={6}
+                  className="input resize-none"
+                />
+                <div
+                  className="flex justify-end mt-1 text-[11px] tabular-nums"
+                  style={{ color: captionOver ? '#E8A23D' : captionNear ? '#E8A23D' : '#9a877d' }}
+                >
+                  {captionLen.toLocaleString('es-AR')} / {captionLimit.toLocaleString('es-AR')}
+                  {captionOver && ' · Excede el límite'}
+                </div>
+              </div>
 
-          {/* Caption */}
-          <div>
-            <div className="flex items-center justify-between mb-1">
-              <label className="label">Caption</label>
-              <button
-                onClick={handleGenerateCaption}
-                disabled={generatingCaption || !form.titulo}
-                className="flex items-center gap-1.5 text-[11px] px-2.5 py-1 rounded-full border font-medium transition-all disabled:opacity-40"
-                style={{ borderColor: '#c6b297', color: '#9a877d' }}
-                title={!form.titulo ? 'Agregá un título primero' : 'Generar con IA'}
+              {/* Hashtags */}
+              <div>
+                <label className="label">Hashtags</label>
+                <input
+                  type="text"
+                  value={form.hashtags}
+                  onChange={(e) => set('hashtags', e.target.value)}
+                  placeholder="#founders #coaching"
+                  className="input mt-1"
+                />
+              </div>
+
+              {/* Links */}
+              <div className="grid grid-cols-1 gap-3">
+                <div>
+                  <label className="label">Link material</label>
+                  <input
+                    type="url"
+                    value={form.linkMaterial ?? ''}
+                    onChange={(e) => set('linkMaterial', e.target.value || null)}
+                    placeholder="drive.google.com/..."
+                    className="input mt-1"
+                  />
+                </div>
+                <div>
+                  <label className="label">Link publicado</label>
+                  <input
+                    type="url"
+                    value={form.linkPublicado ?? ''}
+                    onChange={(e) => set('linkPublicado', e.target.value || null)}
+                    placeholder="instagram.com/p/..."
+                    className="input mt-1"
+                  />
+                </div>
+              </div>
+
+              {/* Notas */}
+              <div>
+                <label className="label">Notas</label>
+                <textarea
+                  value={form.notas}
+                  onChange={(e) => set('notas', e.target.value)}
+                  placeholder="Referencias, ideas, contexto..."
+                  rows={3}
+                  className="input resize-none mt-1"
+                />
+              </div>
+
+              {/* Comentario de Vicky */}
+              <div
+                className="rounded-xl p-4 space-y-2"
+                style={{ background: '#FEF9EC', border: '1px solid #F5E3B0' }}
               >
-                {generatingCaption ? (
-                  <>
-                    <SpinnerIcon />
-                    Generando...
-                  </>
-                ) : (
-                  <>✦ Generar caption</>
-                )}
-              </button>
-            </div>
-            <textarea
-              value={form.caption}
-              onChange={(e) => set('caption', e.target.value)}
-              placeholder="El caption del post..."
-              rows={6}
-              className="input resize-none"
-            />
-            <div
-              className="flex justify-end mt-1 text-[11px] tabular-nums"
-              style={{ color: captionOver ? '#E8A23D' : captionNear ? '#E8A23D' : '#9a877d' }}
-            >
-              {captionLen.toLocaleString('es-AR')} / {captionLimit.toLocaleString('es-AR')}
-              {captionOver && ' · Excede el límite'}
-            </div>
-          </div>
+                <label
+                  className="text-xs font-semibold flex items-center gap-1.5"
+                  style={{ color: '#92700A' }}
+                >
+                  💬 Feedback de Vicky
+                </label>
+                <textarea
+                  value={form.notasVicky}
+                  onChange={(e) => set('notasVicky', e.target.value)}
+                  placeholder="Dejá tu feedback o comentario acá..."
+                  rows={3}
+                  className="w-full resize-none outline-none leading-relaxed"
+                  style={{ background: 'transparent', color: '#282727', fontSize: '0.8125rem' }}
+                />
+              </div>
 
-          {/* Hashtags */}
-          <div>
-            <label className="label">Hashtags</label>
-            <input
-              type="text"
-              value={form.hashtags}
-              onChange={(e) => set('hashtags', e.target.value)}
-              placeholder="#founders #coaching"
-              className="input mt-1"
-            />
-          </div>
-
-          {/* Links */}
-          <div className="grid grid-cols-1 gap-3">
-            <div>
-              <label className="label">Link material</label>
-              <input
-                type="url"
-                value={form.linkMaterial ?? ''}
-                onChange={(e) => set('linkMaterial', e.target.value || null)}
-                placeholder="drive.google.com/..."
-                className="input mt-1"
-              />
-            </div>
-            <div>
-              <label className="label">Link publicado</label>
-              <input
-                type="url"
-                value={form.linkPublicado ?? ''}
-                onChange={(e) => set('linkPublicado', e.target.value || null)}
-                placeholder="instagram.com/p/..."
-                className="input mt-1"
-              />
-            </div>
-          </div>
-
-          {/* Notas */}
-          <div>
-            <label className="label">Notas</label>
-            <textarea
-              value={form.notas}
-              onChange={(e) => set('notas', e.target.value)}
-              placeholder="Referencias, ideas, contexto..."
-              rows={3}
-              className="input resize-none mt-1"
-            />
-          </div>
-
-          {/* Métricas de rendimiento */}
-          <div>
-            <div
-              className="flex items-center gap-2 py-2 my-1"
-              style={{ borderTop: '1px solid #e7e3d7' }}
-            >
-              <span className="text-xs font-semibold" style={{ color: '#282727' }}>
-                Rendimiento
-              </span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#e7e3d7', color: '#9a877d' }}>
-                post-publicación
-              </span>
-            </div>
-            <p className="text-[11px] mb-3" style={{ color: '#9a877d' }}>
-              Las métricas que más importan: guardados, compartidos y leads.
-            </p>
-            <div className="grid grid-cols-2 gap-3">
-              <MetricInput
-                label="Alcance"
-                value={form.alcance}
-                onChange={(v) => set('alcance', v)}
-                placeholder="0"
-              />
-              <MetricInput
-                label="Comentarios"
-                value={form.comentarios}
-                onChange={(v) => set('comentarios', v)}
-                placeholder="0"
-              />
-              <MetricInput
-                label="Guardados ⭐"
-                value={form.guardados}
-                onChange={(v) => set('guardados', v)}
-                placeholder="0"
-                highlight
-              />
-              <MetricInput
-                label="Compartidos ⭐"
-                value={form.compartidos}
-                onChange={(v) => set('compartidos', v)}
-                placeholder="0"
-                highlight
-              />
-            </div>
-            <div className="mt-3">
-              <MetricInput
-                label="Lead magnets / DMs ⭐⭐"
-                value={form.leadMagnets}
-                onChange={(v) => set('leadMagnets', v)}
-                placeholder="0"
-                highlight
-              />
-            </div>
-          </div>
+              {/* Métricas de rendimiento */}
+              <div>
+                <div
+                  className="flex items-center gap-2 py-2 my-1"
+                  style={{ borderTop: '1px solid #e7e3d7' }}
+                >
+                  <span className="text-xs font-semibold" style={{ color: '#282727' }}>
+                    Rendimiento
+                  </span>
+                  <span className="text-[10px] px-1.5 py-0.5 rounded" style={{ background: '#e7e3d7', color: '#9a877d' }}>
+                    post-publicación
+                  </span>
+                </div>
+                <p className="text-[11px] mb-3" style={{ color: '#9a877d' }}>
+                  Las métricas que más importan: guardados, compartidos y leads.
+                </p>
+                <div className="grid grid-cols-2 gap-3">
+                  <MetricInput
+                    label="Alcance"
+                    value={form.alcance}
+                    onChange={(v) => set('alcance', v)}
+                    placeholder="0"
+                  />
+                  <MetricInput
+                    label="Comentarios"
+                    value={form.comentarios}
+                    onChange={(v) => set('comentarios', v)}
+                    placeholder="0"
+                  />
+                  <MetricInput
+                    label="Guardados ⭐"
+                    value={form.guardados}
+                    onChange={(v) => set('guardados', v)}
+                    placeholder="0"
+                    highlight
+                  />
+                  <MetricInput
+                    label="Compartidos ⭐"
+                    value={form.compartidos}
+                    onChange={(v) => set('compartidos', v)}
+                    placeholder="0"
+                    highlight
+                  />
+                </div>
+                <div className="mt-3">
+                  <MetricInput
+                    label="Lead magnets / DMs ⭐⭐"
+                    value={form.leadMagnets}
+                    onChange={(v) => set('leadMagnets', v)}
+                    placeholder="0"
+                    highlight
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
 
         {/* Footer */}
@@ -619,5 +660,104 @@ function SpinnerIcon() {
         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
       />
     </svg>
+  )
+}
+
+function PostPreview({ form }: { form: Omit<Post, 'id' | 'notionUrl'> }) {
+  const username =
+    form.canal === 'IG Founders' ? 'founders'
+    : form.canal === 'IG Vicky' ? 'vickybecci'
+    : form.canal === 'LinkedIn' ? 'Vicky Becci'
+    : 'TikTok'
+
+  const initial = username[0].toUpperCase()
+
+  const captionPreview = (form.caption || form.titulo || '').slice(0, 220)
+  const hasMore = (form.caption || form.titulo || '').length > 220
+
+  const formatLabel: Record<string, string> = {
+    Reel: '▶ Reel',
+    Carrusel: '⊞ Carrusel',
+    'Imagen/Post': '⊡ Imagen',
+    Video: '▶ Video',
+    Texto: 'Texto',
+    Story: '⊙ Story',
+    Recorte: '✂ Recorte',
+    Testimonio: '💬 Testimonio',
+  }
+
+  const color = form.canal ? CANAL_COLORS[form.canal] : '#9a877d'
+
+  return (
+    <div className="flex justify-center py-2">
+      <div
+        className="w-full max-w-[300px] rounded-2xl overflow-hidden border"
+        style={{ borderColor: '#e7e3d7' }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between px-3 py-2.5 bg-white">
+          <div className="flex items-center gap-2">
+            <div
+              className="w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold text-white flex-shrink-0"
+              style={{ background: color }}
+            >
+              {initial}
+            </div>
+            <p className="text-[12px] font-semibold">{username}</p>
+          </div>
+          <span className="text-base" style={{ color: '#9a877d' }}>···</span>
+        </div>
+
+        {/* Media placeholder */}
+        <div
+          className="w-full aspect-square flex flex-col items-center justify-center gap-2"
+          style={{ background: `${color}10` }}
+        >
+          <div
+            className="w-16 h-16 rounded-2xl flex items-center justify-center text-2xl"
+            style={{ background: `${color}20` }}
+          >
+            {form.formato === 'Reel' || form.formato === 'Video' ? '▶' :
+             form.formato === 'Carrusel' ? '⊞' :
+             form.formato === 'Story' ? '⊙' :
+             form.formato === 'Testimonio' ? '💬' : '⊡'}
+          </div>
+          {form.formato && (
+            <span className="text-[11px] font-medium" style={{ color }}>
+              {formatLabel[form.formato] ?? form.formato}
+            </span>
+          )}
+        </div>
+
+        {/* Actions */}
+        <div className="px-3 py-2 bg-white flex items-center gap-3 text-lg">
+          <span>♡</span>
+          <span>💬</span>
+          <span>↗</span>
+        </div>
+
+        {/* Caption */}
+        <div className="px-3 pb-4 bg-white space-y-1">
+          {captionPreview ? (
+            <>
+              <p className="text-[12px] leading-relaxed">
+                <strong>{username}</strong>{' '}
+                {captionPreview}
+                {hasMore && <span style={{ color: '#9a877d' }}> ... más</span>}
+              </p>
+              {form.hashtags && (
+                <p className="text-[11px] break-all" style={{ color: '#0095F6' }}>
+                  {form.hashtags.slice(0, 120)}
+                </p>
+              )}
+            </>
+          ) : (
+            <p className="text-[12px]" style={{ color: '#9a877d' }}>
+              {form.titulo ? `${form.titulo}...` : 'Sin caption aún.'}
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
   )
 }
