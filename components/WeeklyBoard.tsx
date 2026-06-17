@@ -18,6 +18,15 @@ import { es } from 'date-fns/locale'
 import type { Post, Canal } from '@/lib/types'
 import { CANALES, CANAL_COLORS, ESTADOS_COMPLETOS, ESTADO_COLORS } from '@/lib/types'
 import BoardCard, { BoardCardOverlay } from './BoardCard'
+import { CanalIcon } from './CanalIcon'
+
+const CANAL_SHORT: Record<Canal, string> = {
+  'IG Founders': 'Founders',
+  'IG Vicky': 'Vicky',
+  LinkedIn: 'LinkedIn',
+  TikTok: 'TikTok',
+  YouTube: 'YouTube',
+}
 
 interface Props {
   posts: Post[]
@@ -135,15 +144,14 @@ export default function WeeklyBoard({
                   style={{ borderRight: '1px solid #e7e3d7' }}
                 >
                   <div className="flex items-center gap-1.5">
-                    <span
-                      className="w-2 h-2 rounded-full flex-shrink-0"
-                      style={{ background: CANAL_COLORS[canal] }}
-                    />
+                    <span style={{ color: CANAL_COLORS[canal], flexShrink: 0 }}>
+                      <CanalIcon canal={canal} size={14} />
+                    </span>
                     <span
                       className="text-xs font-semibold leading-tight"
                       style={{ color: '#282727' }}
                     >
-                      {canal}
+                      {CANAL_SHORT[canal]}
                     </span>
                   </div>
                   {weekCanalPosts.length > 0 && (

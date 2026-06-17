@@ -19,6 +19,7 @@ export default function ChannelView({ posts, onEditPost }: Props) {
       'IG Vicky': [],
       LinkedIn: [],
       TikTok: [],
+      YouTube: [],
     }
     for (const post of posts) {
       if (post.canal) map[post.canal].push(post)

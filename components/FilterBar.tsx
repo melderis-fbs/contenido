@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from 'react'
 import type { WeekFilters, Canal, Estado, Pilar } from '@/lib/types'
 import { CANALES, ESTADOS, PILARES, CANAL_COLORS, ESTADO_COLORS } from '@/lib/types'
+import { CanalIcon } from './CanalIcon'
 
 interface Props {
   filters: WeekFilters
@@ -13,46 +14,12 @@ function toggle<T>(arr: T[], item: T): T[] {
   return arr.includes(item) ? arr.filter((x) => x !== item) : [...arr, item]
 }
 
-function IGIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="2" y="2" width="20" height="20" rx="5" ry="5"/>
-      <circle cx="12" cy="12" r="4"/>
-      <circle cx="17.5" cy="6.5" r="0.5" fill="currentColor" stroke="none"/>
-    </svg>
-  )
-}
-
-function LinkedInIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4v-7a6 6 0 0 1 6-6z"/>
-      <rect x="2" y="9" width="4" height="12"/>
-      <circle cx="4" cy="4" r="2"/>
-    </svg>
-  )
-}
-
-function TikTokIcon() {
-  return (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="currentColor">
-      <path d="M19.59 6.69a4.83 4.83 0 0 1-3.77-4.25V2h-3.45v13.67a2.89 2.89 0 1 1-4.08-2.64V9.56a6.34 6.34 0 1 0 7.53 6.22V8.69a8.18 8.18 0 0 0 4.84 1.56V6.81a4.83 4.83 0 0 1-1.07-.12z"/>
-    </svg>
-  )
-}
-
-const CANAL_ICONS: Record<Canal, React.ReactNode> = {
-  'IG Founders': <IGIcon />,
-  'IG Vicky': <IGIcon />,
-  LinkedIn: <LinkedInIcon />,
-  TikTok: <TikTokIcon />,
-}
-
 const CANAL_SHORT: Record<Canal, string> = {
   'IG Founders': 'Founders',
   'IG Vicky': 'Vicky',
   LinkedIn: 'LinkedIn',
   TikTok: 'TikTok',
+  YouTube: 'YouTube',
 }
 
 export default function FilterBar({ filters, onChange }: Props) {
@@ -117,7 +84,7 @@ export default function FilterBar({ filters, onChange }: Props) {
               color: active ? CANAL_COLORS[canal] : '#9a877d',
             }}
           >
-            {CANAL_ICONS[canal]}
+            <CanalIcon canal={canal} size={13} />
             {CANAL_SHORT[canal]}
           </button>
         )

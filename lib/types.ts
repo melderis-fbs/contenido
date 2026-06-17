@@ -1,4 +1,4 @@
-export type Canal = 'IG Founders' | 'IG Vicky' | 'LinkedIn' | 'TikTok'
+export type Canal = 'IG Founders' | 'IG Vicky' | 'LinkedIn' | 'TikTok' | 'YouTube'
 export type Formato =
   | 'Reel'
   | 'Carrusel'
@@ -17,7 +17,7 @@ export type Pilar =
   | 'Tu historia'
   | 'Evolución'
 
-export const CANALES: Canal[] = ['IG Founders', 'IG Vicky', 'LinkedIn', 'TikTok']
+export const CANALES: Canal[] = ['IG Founders', 'IG Vicky', 'LinkedIn', 'TikTok', 'YouTube']
 export const FORMATOS: Formato[] = [
   'Reel',
   'Carrusel',
@@ -43,6 +43,7 @@ export const CANAL_COLORS: Record<Canal, string> = {
   'IG Vicky': '#8B3FB5',
   LinkedIn: '#0A66C2',
   TikTok: '#FE2C55',
+  YouTube: '#FF0000',
 }
 
 export const ESTADO_COLORS: Record<Estado, string> = {
@@ -58,6 +59,7 @@ export const CAPTION_LIMITS: Record<Canal, number> = {
   'IG Vicky': 2200,
   LinkedIn: 3000,
   TikTok: 2200,
+  YouTube: 5000,
 }
 
 export const ESTADOS_COMPLETOS: Estado[] = ['Listo', 'Programado', 'Publicado']

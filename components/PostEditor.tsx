@@ -668,6 +668,7 @@ function PostPreview({ form }: { form: Omit<Post, 'id' | 'notionUrl'> }) {
     form.canal === 'IG Founders' ? 'founders'
     : form.canal === 'IG Vicky' ? 'vickybecci'
     : form.canal === 'LinkedIn' ? 'Vicky Becci'
+    : form.canal === 'YouTube' ? 'Founders'
     : 'TikTok'
 
   const initial = username[0].toUpperCase()
