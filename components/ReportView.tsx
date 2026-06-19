@@ -505,11 +505,12 @@ export default function ReportView({ posts, onEditPost }: Props) {
           )}
 
           {/* Analytics: Top 3 / Bottom 3 / Format breakdown */}
-          {postsWithMetrics.length > 0 && (
+          {monthPosts.length > 0 && (
             <MonthlyAnalytics
               topPosts={topPosts}
               bottomPosts={bottomPosts}
               formatBreakdown={formatBreakdown}
+              hasMetrics={postsWithMetrics.length > 0}
               onEditPost={onEditPost}
             />
           )}
@@ -827,11 +828,13 @@ function MonthlyAnalytics({
   topPosts,
   bottomPosts,
   formatBreakdown,
+  hasMetrics,
   onEditPost,
 }: {
   topPosts: Post[]
   bottomPosts: Post[]
   formatBreakdown: [string, { count: number; guardados: number; compartidos: number; leads: number }][]
+  hasMetrics: boolean
   onEditPost: (p: Post) => void
 }) {
   return (
@@ -846,7 +849,11 @@ function MonthlyAnalytics({
           <div className="px-4 py-2.5 text-xs font-semibold" style={{ background: '#f3f1ea', borderBottom: '1px solid #e7e3d7', color: '#282727' }}>
             Top 3 mejores
           </div>
-          {topPosts.length === 0 ? (
+          {!hasMetrics ? (
+            <p className="px-4 py-3 text-xs" style={{ color: '#9a877d' }}>
+              Cargá métricas en los posts para ver el ranking
+            </p>
+          ) : topPosts.length === 0 ? (
             <p className="px-4 py-3 text-xs" style={{ color: '#9a877d' }}>Sin datos suficientes</p>
           ) : (
             topPosts.map((p, i) => (
@@ -860,7 +867,11 @@ function MonthlyAnalytics({
           <div className="px-4 py-2.5 text-xs font-semibold" style={{ background: '#f3f1ea', borderBottom: '1px solid #e7e3d7', color: '#282727' }}>
             Bottom 3 con menor rendimiento
           </div>
-          {bottomPosts.length === 0 ? (
+          {!hasMetrics ? (
+            <p className="px-4 py-3 text-xs" style={{ color: '#9a877d' }}>
+              Cargá métricas en los posts para ver el ranking
+            </p>
+          ) : bottomPosts.length === 0 ? (
             <p className="px-4 py-3 text-xs" style={{ color: '#9a877d' }}>Sin datos suficientes</p>
           ) : (
             bottomPosts.map((p, i) => (
