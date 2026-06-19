@@ -168,12 +168,16 @@ export async function createPost(data: CreatePostInput): Promise<Post> {
   return mapPageToPost(page as PageObjectResponse)
 }
 
-// Optional Notion properties that may not exist in all database schemas.
-// If Notion rejects the update mentioning one of these, we retry without them.
-const OPTIONAL_PROPS = ['Notas Vicky', 'Alcance', 'Guardados', 'Compartidos', 'Comentarios', 'Lead magnets']
+// Properties guaranteed to exist in the base Notion database schema.
+// On validation errors (e.g. optional properties not yet added to the database),
+// we retry with only these core properties so basic edits always work.
+const CORE_PROPS = new Set([
+  'Título', 'Canal', 'Formato', 'Estado', 'Pilar', 'Fecha',
+  'Caption', 'Hashtags', 'Link material', 'Link publicado', 'Notas',
+])
 
 export async function updatePost(id: string, data: UpdatePostInput): Promise<Post> {
-  const properties = buildProperties(data)
+  const properties = buildProperties(data) as Record<string, unknown>
   try {
     const page = await notion.pages.update({
       page_id: id,
@@ -181,15 +185,18 @@ export async function updatePost(id: string, data: UpdatePostInput): Promise<Pos
     })
     return mapPageToPost(page as PageObjectResponse)
   } catch (e: unknown) {
-    const msg = (e as { message?: string })?.message ?? ''
-    const badProp = OPTIONAL_PROPS.find((p) => msg.includes(p))
-    if (!badProp) throw e
-    // Strip the offending property and retry once
-    const safe = { ...properties } as Record<string, unknown>
-    delete safe[badProp]
+    // On any Notion validation error (status 400), retry with only core properties.
+    // This handles the case where optional properties (metrics, Notas Vicky) haven't
+    // been added to the Notion database yet.
+    const status = (e as { status?: number })?.status
+    if (status !== 400) throw e
+    const coreOnly: Record<string, unknown> = {}
+    for (const [key, val] of Object.entries(properties)) {
+      if (CORE_PROPS.has(key)) coreOnly[key] = val
+    }
     const page = await notion.pages.update({
       page_id: id,
-      properties: safe as Parameters<typeof notion.pages.update>[0]['properties'],
+      properties: coreOnly as Parameters<typeof notion.pages.update>[0]['properties'],
     })
     return mapPageToPost(page as PageObjectResponse)
   }
