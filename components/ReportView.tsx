@@ -150,6 +150,18 @@ ARCHIVOS QUE TE VAN A PASAR:
 - founders-posts-YYYY-MM.csv: posts publicados del mes (con métricas si están cargadas)
 - CSV de Meta Business Suite: métricas de alcance, guardados, compartidos, comentarios (cruzarlo con el de posts por fecha o título)`
 
+// ─── Analytics helpers ────────────────────────────────────────────────────────
+
+function engagementScore(p: Post): number {
+  return (p.leadMagnets ?? 0) * 3 + (p.guardados ?? 0) * 2 + (p.compartidos ?? 0) * 2 + (p.comentarios ?? 0) + (p.alcance ?? 0) * 0.01
+}
+
+function hasAnyMetrics(p: Post): boolean {
+  return [p.alcance, p.guardados, p.compartidos, p.comentarios, p.leadMagnets].some(
+    (v) => v !== null && v !== undefined,
+  )
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 type Mode = 'semana' | 'mes'
@@ -215,6 +227,31 @@ export default function ReportView({ posts, onEditPost }: Props) {
     }),
     { alcance: 0, guardados: 0, compartidos: 0, comentarios: 0, leadMagnets: 0 },
   ), [monthPosts])
+
+  const postsWithMetrics = useMemo(() => monthPosts.filter(hasAnyMetrics), [monthPosts])
+
+  const topPosts = useMemo(
+    () => [...postsWithMetrics].sort((a, b) => engagementScore(b) - engagementScore(a)).slice(0, 3),
+    [postsWithMetrics],
+  )
+
+  const bottomPosts = useMemo(
+    () => [...postsWithMetrics].sort((a, b) => engagementScore(a) - engagementScore(b)).slice(0, 3),
+    [postsWithMetrics],
+  )
+
+  const formatBreakdown = useMemo(() => {
+    const map: Record<string, { count: number; guardados: number; compartidos: number; leads: number }> = {}
+    for (const p of monthPosts) {
+      const fmt = p.formato ?? '—'
+      if (!map[fmt]) map[fmt] = { count: 0, guardados: 0, compartidos: 0, leads: 0 }
+      map[fmt].count++
+      map[fmt].guardados += p.guardados ?? 0
+      map[fmt].compartidos += p.compartidos ?? 0
+      map[fmt].leads += p.leadMagnets ?? 0
+    }
+    return Object.entries(map).sort((a, b) => b[1].count - a[1].count)
+  }, [monthPosts])
 
   const weekPublished = weekPosts.filter((p) => p.estado === 'Publicado')
   const weekPlanned = weekPosts.filter((p) => p.estado !== 'Publicado')
@@ -465,6 +502,16 @@ export default function ReportView({ posts, onEditPost }: Props) {
                 </div>
               ))}
             </div>
+          )}
+
+          {/* Analytics: Top 3 / Bottom 3 / Format breakdown */}
+          {postsWithMetrics.length > 0 && (
+            <MonthlyAnalytics
+              topPosts={topPosts}
+              bottomPosts={bottomPosts}
+              formatBreakdown={formatBreakdown}
+              onEditPost={onEditPost}
+            />
           )}
 
           {monthPosts.length === 0 ? (
@@ -771,6 +818,115 @@ function MetricCell({ value, highlight = false }: { value: number | null; highli
     <span className="text-right tabular-nums" style={{ color: value !== null && highlight ? '#282727' : '#9a877d' }}>
       {value !== null ? value.toLocaleString('es-AR') : '—'}
     </span>
+  )
+}
+
+const MEDALS = ['🥇', '🥈', '🥉']
+
+function MonthlyAnalytics({
+  topPosts,
+  bottomPosts,
+  formatBreakdown,
+  onEditPost,
+}: {
+  topPosts: Post[]
+  bottomPosts: Post[]
+  formatBreakdown: [string, { count: number; guardados: number; compartidos: number; leads: number }][]
+  onEditPost: (p: Post) => void
+}) {
+  return (
+    <div className="space-y-5">
+      <h3 className="text-xs font-semibold uppercase tracking-wide" style={{ color: '#9a877d' }}>
+        Análisis del mes
+      </h3>
+
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {/* Top 3 */}
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e7e3d7' }}>
+          <div className="px-4 py-2.5 text-xs font-semibold" style={{ background: '#f3f1ea', borderBottom: '1px solid #e7e3d7', color: '#282727' }}>
+            Top 3 mejores
+          </div>
+          {topPosts.length === 0 ? (
+            <p className="px-4 py-3 text-xs" style={{ color: '#9a877d' }}>Sin datos suficientes</p>
+          ) : (
+            topPosts.map((p, i) => (
+              <RankRow key={p.id} post={p} medal={MEDALS[i]} onEdit={onEditPost} />
+            ))
+          )}
+        </div>
+
+        {/* Bottom 3 */}
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e7e3d7' }}>
+          <div className="px-4 py-2.5 text-xs font-semibold" style={{ background: '#f3f1ea', borderBottom: '1px solid #e7e3d7', color: '#282727' }}>
+            Bottom 3 con menor rendimiento
+          </div>
+          {bottomPosts.length === 0 ? (
+            <p className="px-4 py-3 text-xs" style={{ color: '#9a877d' }}>Sin datos suficientes</p>
+          ) : (
+            bottomPosts.map((p, i) => (
+              <RankRow key={p.id} post={p} medal={['➊', '➋', '➌'][i]} onEdit={onEditPost} isBottom />
+            ))
+          )}
+        </div>
+      </div>
+
+      {/* Format breakdown */}
+      {formatBreakdown.length > 1 && (
+        <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e7e3d7' }}>
+          <div
+            className="grid text-[11px] font-semibold uppercase tracking-wide px-4 py-2"
+            style={{ gridTemplateColumns: '1fr 50px 55px 55px 55px', background: '#f3f1ea', color: '#9a877d', borderBottom: '1px solid #e7e3d7' }}
+          >
+            <span>Formato</span>
+            <span className="text-right">Posts</span>
+            <span className="text-right">Guard.</span>
+            <span className="text-right">Comp.</span>
+            <span className="text-right">Leads⭐</span>
+          </div>
+          {formatBreakdown.map(([fmt, stats], i) => (
+            <div
+              key={fmt}
+              className="grid text-xs px-4 py-2.5"
+              style={{ gridTemplateColumns: '1fr 50px 55px 55px 55px', borderTop: i > 0 ? '1px solid #e7e3d7' : undefined }}
+            >
+              <span className="font-medium">{fmt}</span>
+              <span className="text-right tabular-nums" style={{ color: '#9a877d' }}>{stats.count}</span>
+              <MetricCell value={stats.guardados || null} highlight />
+              <MetricCell value={stats.compartidos || null} highlight />
+              <MetricCell value={stats.leads || null} highlight />
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
+
+function RankRow({ post, medal, onEdit, isBottom = false }: { post: Post; medal: string; onEdit: (p: Post) => void; isBottom?: boolean }) {
+  return (
+    <button
+      onClick={() => onEdit(post)}
+      className="w-full flex items-start gap-3 px-4 py-2.5 text-left hover:bg-surface transition-colors"
+      style={{ borderTop: '1px solid #e7e3d7' }}
+    >
+      <span className="text-sm flex-shrink-0 mt-0.5">{medal}</span>
+      <div className="flex-1 min-w-0">
+        <p className="text-xs font-medium truncate" style={{ color: '#282727' }}>{post.titulo || '(sin título)'}</p>
+        <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+          {post.canal && (
+            <span className="text-[10px]" style={{ color: CANAL_COLORS[post.canal] }}>{post.canal}</span>
+          )}
+          {post.formato && (
+            <span className="text-[10px]" style={{ color: '#9a877d' }}>{post.formato}</span>
+          )}
+          <span className="text-[10px] tabular-nums" style={{ color: isBottom ? '#9a877d' : '#282727' }}>
+            {post.leadMagnets ? `${post.leadMagnets} leads · ` : ''}
+            {post.guardados ? `${post.guardados} guard. · ` : ''}
+            {post.compartidos ? `${post.compartidos} comp.` : ''}
+          </span>
+        </div>
+      </div>
+    </button>
   )
 }
 

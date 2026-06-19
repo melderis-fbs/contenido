@@ -32,7 +32,11 @@ function extractSelect(prop: any): string | null {
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function extractDate(prop: any): string | null {
-  return prop?.date?.start ?? null
+  const start = prop?.date?.start ?? null
+  if (!start) return null
+  // Strip timezone suffix — Notion appends +00:00 to times stored without timezone,
+  // causing a 3-hour shift in Argentina (UTC-3). Slicing to 16 chars preserves local time.
+  return start.length > 10 ? start.slice(0, 16) : start
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
