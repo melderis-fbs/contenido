@@ -107,7 +107,7 @@ function buildProperties(data: Partial<CreatePostInput>): Record<string, unknown
   if (data.notas !== undefined) {
     props['Notas'] = { rich_text: toRichText(data.notas) }
   }
-  if (data.notasVicky !== undefined) {
+  if (data.notasVicky) {
     props['Notas Vicky'] = { rich_text: toRichText(data.notasVicky) }
   }
   if (data.alcance !== undefined) {
@@ -168,12 +168,31 @@ export async function createPost(data: CreatePostInput): Promise<Post> {
   return mapPageToPost(page as PageObjectResponse)
 }
 
+// Optional Notion properties that may not exist in all database schemas.
+// If Notion rejects the update mentioning one of these, we retry without them.
+const OPTIONAL_PROPS = ['Notas Vicky', 'Alcance', 'Guardados', 'Compartidos', 'Comentarios', 'Lead magnets']
+
 export async function updatePost(id: string, data: UpdatePostInput): Promise<Post> {
-  const page = await notion.pages.update({
-    page_id: id,
-    properties: buildProperties(data) as Parameters<typeof notion.pages.update>[0]['properties'],
-  })
-  return mapPageToPost(page as PageObjectResponse)
+  const properties = buildProperties(data)
+  try {
+    const page = await notion.pages.update({
+      page_id: id,
+      properties: properties as Parameters<typeof notion.pages.update>[0]['properties'],
+    })
+    return mapPageToPost(page as PageObjectResponse)
+  } catch (e: unknown) {
+    const msg = (e as { message?: string })?.message ?? ''
+    const badProp = OPTIONAL_PROPS.find((p) => msg.includes(p))
+    if (!badProp) throw e
+    // Strip the offending property and retry once
+    const safe = { ...properties } as Record<string, unknown>
+    delete safe[badProp]
+    const page = await notion.pages.update({
+      page_id: id,
+      properties: safe as Parameters<typeof notion.pages.update>[0]['properties'],
+    })
+    return mapPageToPost(page as PageObjectResponse)
+  }
 }
 
 export async function archivePost(id: string): Promise<void> {
