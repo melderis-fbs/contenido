@@ -75,6 +75,14 @@ export function mapPageToPost(page: PageObjectResponse): Post {
   }
 }
 
+function sanitizeUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  const trimmed = url.trim()
+  if (!trimmed) return null
+  if (/^https?:\/\//i.test(trimmed)) return trimmed
+  return `https://${trimmed}`
+}
+
 function buildProperties(data: Partial<CreatePostInput>): Record<string, unknown> {
   const props: Record<string, unknown> = {}
 
@@ -103,10 +111,10 @@ function buildProperties(data: Partial<CreatePostInput>): Record<string, unknown
     props['Hashtags'] = { rich_text: toRichText(data.hashtags) }
   }
   if (data.linkMaterial !== undefined) {
-    props['Link material'] = { url: data.linkMaterial || null }
+    props['Link material'] = { url: sanitizeUrl(data.linkMaterial) }
   }
   if (data.linkPublicado !== undefined) {
-    props['Link publicado'] = { url: data.linkPublicado || null }
+    props['Link publicado'] = { url: sanitizeUrl(data.linkPublicado) }
   }
   if (data.notas !== undefined) {
     props['Notas'] = { rich_text: toRichText(data.notas) }

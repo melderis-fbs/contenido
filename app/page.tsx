@@ -129,12 +129,15 @@ export default function Home() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(updates),
         })
-        if (!res.ok) throw new Error()
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}))
+          throw new Error(data.error ?? 'No se pudo actualizar')
+        }
         const { post } = await res.json()
         setPosts((prev) => prev.map((p) => (p.id === id ? post : p)))
-      } catch {
+      } catch (e) {
         loadPosts()
-        throw new Error('No se pudo actualizar')
+        throw e
       }
     },
     [loadPosts],

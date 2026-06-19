@@ -8,8 +8,9 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     const post = await updatePost(id, body)
     return NextResponse.json({ post })
   } catch (error) {
+    const msg = (error as { message?: string })?.message ?? 'Error desconocido'
     console.error('Error updating post:', error)
-    return NextResponse.json({ error: 'No se pudo actualizar el contenido' }, { status: 500 })
+    return NextResponse.json({ error: `No se pudo actualizar: ${msg}` }, { status: 500 })
   }
 }
 

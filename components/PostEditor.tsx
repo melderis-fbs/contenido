@@ -108,8 +108,8 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
         await onUpdate(post.id, form)
         onClose()
       }
-    } catch {
-      setError('No se pudo guardar. Intentá de nuevo.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'No se pudo guardar. Intentá de nuevo.')
     } finally {
       setSaving(false)
     }
