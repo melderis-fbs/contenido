@@ -3,7 +3,7 @@
 import { useDraggable } from '@dnd-kit/core'
 import { CSS } from '@dnd-kit/utilities'
 import type { Post } from '@/lib/types'
-import { ESTADO_COLORS, CANAL_COLORS } from '@/lib/types'
+import { ESTADO_COLORS, FORMATO_COLORS } from '@/lib/types'
 import { formatTime } from '@/lib/utils'
 
 interface Props {
@@ -59,6 +59,7 @@ function BoardCardInner({
   onEdit?: (post: Post) => void
   isOverlay?: boolean
 }) {
+  const formatoColor = post.formato ? FORMATO_COLORS[post.formato] : '#e7e3d7'
   const estadoColor = post.estado ? ESTADO_COLORS[post.estado] : '#e7e3d7'
   const time = formatTime(post.fecha)
 
@@ -78,18 +79,25 @@ function BoardCardInner({
       style={{
         borderColor: '#e7e3d7',
         borderLeftWidth: 3,
-        borderLeftColor: estadoColor,
+        borderLeftColor: formatoColor,
         boxShadow: isOverlay ? '0 8px 24px rgba(0,0,0,0.12)' : undefined,
       }}
     >
-      {/* Top row: format + time */}
+      {/* Top row: format badge + estado dot + time */}
       <div className="flex items-center justify-between gap-1 mb-1">
-        <span
-          className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
-          style={{ background: `${estadoColor}18`, color: estadoColor }}
-        >
-          {post.formato ? FORMATO_SHORT[post.formato] || post.formato : '—'}
-        </span>
+        <div className="flex items-center gap-1.5">
+          <span
+            className="text-[10px] font-semibold uppercase tracking-wide px-1.5 py-0.5 rounded"
+            style={{ background: `${formatoColor}18`, color: formatoColor }}
+          >
+            {post.formato ? FORMATO_SHORT[post.formato] || post.formato : '—'}
+          </span>
+          <span
+            className="w-1.5 h-1.5 rounded-full flex-shrink-0"
+            style={{ background: estadoColor }}
+            title={post.estado ?? ''}
+          />
+        </div>
         {time && (
           <span className="text-[10px] tabular-nums" style={{ color: '#9a877d' }}>
             {time}
@@ -111,8 +119,15 @@ function BoardCardInner({
             </svg>
           </span>
         )}
+        {post.notasVicky && (
+          <span title="Tiene comentario de Vicky" style={{ color: '#F59E0B' }}>
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>
+            </svg>
+          </span>
+        )}
         {post.linkMaterial && (
-          <span title="Tiene link" style={{ color: '#9a877d' }}>
+          <span title="Tiene material" style={{ color: '#9a877d' }}>
             <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
               <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" />
               <path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" />

@@ -62,6 +62,17 @@ export const CAPTION_LIMITS: Record<Canal, number> = {
   YouTube: 5000,
 }
 
+export const FORMATO_COLORS: Record<Formato, string> = {
+  Reel: '#F43F5E',
+  Carrusel: '#3B82F6',
+  'Imagen/Post': '#10B981',
+  Video: '#F97316',
+  Texto: '#8B8B97',
+  Story: '#F59E0B',
+  Recorte: '#8B5CF6',
+  Testimonio: '#EC4899',
+}
+
 export const ESTADOS_COMPLETOS: Estado[] = ['Listo', 'Programado', 'Publicado']
 
 export interface Post {

@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback, useMemo } from 'react'
 import { startOfWeek, endOfWeek, addWeeks, subWeeks, isWithinInterval } from 'date-fns'
 import type { Post, Canal, WeekFilters } from '@/lib/types'
+import { parsePostDate } from '@/lib/utils'
 import WeeklyBoard from '@/components/WeeklyBoard'
 import WeekMetrics from '@/components/WeekMetrics'
 import FilterBar from '@/components/FilterBar'
@@ -93,7 +94,7 @@ export default function Home() {
     return filteredPosts.filter((p) => {
       if (!p.fecha) return false
       try {
-        return isWithinInterval(new Date(p.fecha), { start: currentWeekStart, end: weekEnd })
+        return isWithinInterval(parsePostDate(p.fecha), { start: currentWeekStart, end: weekEnd })
       } catch {
         return false
       }

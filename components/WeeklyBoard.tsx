@@ -19,6 +19,7 @@ import type { Post, Canal } from '@/lib/types'
 import { CANALES, CANAL_COLORS, ESTADOS_COMPLETOS, ESTADO_COLORS } from '@/lib/types'
 import BoardCard, { BoardCardOverlay } from './BoardCard'
 import { CanalIcon } from './CanalIcon'
+import { parsePostDate } from '@/lib/utils'
 
 const CANAL_SHORT: Record<Canal, string> = {
   'IG Founders': 'Founders',
@@ -60,7 +61,7 @@ export default function WeeklyBoard({
     return posts
       .filter((p) => {
         if (p.canal !== canal || !p.fecha) return false
-        return isSameDay(new Date(p.fecha), day)
+        return isSameDay(parsePostDate(p.fecha), day)
       })
       .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
   }
@@ -89,7 +90,7 @@ export default function WeeklyBoard({
       newFecha = `${dateStr}T${time}`
     }
 
-    if (post.canal !== canal || !isSameDay(new Date(post.fecha || ''), new Date(dateStr))) {
+    if (post.canal !== canal || !isSameDay(parsePostDate(post.fecha || dateStr), parsePostDate(dateStr))) {
       onMovePost(postId, canal as Canal, newFecha)
     }
   }
@@ -129,7 +130,7 @@ export default function WeeklyBoard({
           {/* Channel rows */}
           {CANALES.map((canal) => {
             const canalPosts = posts.filter((p) => p.canal === canal)
-            const weekCanalPosts = canalPosts.filter((p) => p.fecha && days.some((d) => isSameDay(new Date(p.fecha!), d)))
+            const weekCanalPosts = canalPosts.filter((p) => p.fecha && days.some((d) => isSameDay(parsePostDate(p.fecha!), d)))
             const completas = weekCanalPosts.filter((p) => p.estado && ESTADOS_COMPLETOS.includes(p.estado)).length
 
             return (

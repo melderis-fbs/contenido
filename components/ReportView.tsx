@@ -16,6 +16,7 @@ import {
 import { es } from 'date-fns/locale'
 import type { Post } from '@/lib/types'
 import { CANAL_COLORS, ESTADOS_COMPLETOS } from '@/lib/types'
+import { parsePostDate } from '@/lib/utils'
 
 interface Props {
   posts: Post[]
@@ -45,7 +46,7 @@ function downloadCSV(content: string, filename: string) {
 function exportWeeklyCSV(posts: Post[], weekLabel: string) {
   const headers = ['Fecha', 'Estado', 'Canal', 'Formato', 'Pilar', 'Título', 'Link publicado']
   const rows = posts.map((p) => [
-    p.fecha ? format(new Date(p.fecha), 'dd/MM/yyyy') : '',
+    p.fecha ? format(parsePostDate(p.fecha), 'dd/MM/yyyy') : '',
     p.estado ?? '',
     p.canal ?? '',
     p.formato ?? '',
@@ -59,7 +60,7 @@ function exportWeeklyCSV(posts: Post[], weekLabel: string) {
 function exportMonthlyCSV(posts: Post[], monthKey: string) {
   const headers = ['Fecha', 'Canal', 'Formato', 'Pilar', 'Título', 'Alcance', 'Guardados', 'Compartidos', 'Comentarios', 'Lead magnets', 'Link publicado']
   const rows = posts.map((p) => [
-    p.fecha ? format(new Date(p.fecha), 'dd/MM/yyyy') : '',
+    p.fecha ? format(parsePostDate(p.fecha), 'dd/MM/yyyy') : '',
     p.canal ?? '',
     p.formato ?? '',
     p.pilar ?? '',
@@ -185,7 +186,7 @@ export default function ReportView({ posts, onEditPost }: Props) {
       .filter((p) => {
         if (!p.fecha) return false
         try {
-          return isWithinInterval(new Date(p.fecha), { start: currentWeekStart, end: weekEnd })
+          return isWithinInterval(parsePostDate(p.fecha), { start: currentWeekStart, end: weekEnd })
         } catch { return false }
       })
       .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
@@ -198,7 +199,7 @@ export default function ReportView({ posts, onEditPost }: Props) {
       .filter((p) => {
         if (p.estado !== 'Publicado' || !p.fecha) return false
         try {
-          return isWithinInterval(new Date(p.fecha), { start, end })
+          return isWithinInterval(parsePostDate(p.fecha), { start, end })
         } catch { return false }
       })
       .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
@@ -630,7 +631,7 @@ function PostsTable({
             style={{ gridTemplateColumns: cols, borderTop: i > 0 ? '1px solid #e7e3d7' : undefined }}
           >
             <span style={{ color: '#9a877d' }}>
-              {post.fecha ? format(new Date(post.fecha), 'd MMM', { locale: es }) : '—'}
+              {post.fecha ? format(parsePostDate(post.fecha), 'd MMM', { locale: es }) : '—'}
             </span>
             {showMetrics ? (
               <>

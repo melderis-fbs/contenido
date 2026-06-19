@@ -2,6 +2,16 @@ export function cn(...classes: (string | false | undefined | null)[]): string {
   return classes.filter(Boolean).join(' ')
 }
 
+/**
+ * Parse a post date string into a local-time Date.
+ * Date-only strings like "2026-06-18" are parsed by JS as UTC midnight,
+ * which shifts to the previous day in UTC-3 (Argentina). Appending T00:00
+ * forces local-time parsing per the ISO 8601 spec.
+ */
+export function parsePostDate(fecha: string): Date {
+  return new Date(fecha.length === 10 ? `${fecha}T00:00` : fecha)
+}
+
 /** Converts an ISO date string or Notion date string to datetime-local input format */
 export function toDatetimeLocal(isoString: string | null): string {
   if (!isoString) return ''
