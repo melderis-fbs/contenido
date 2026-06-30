@@ -68,9 +68,13 @@ export function mapPageToPost(page: PageObjectResponse): Post {
     notasVicky: extractRichText(p['Notas Vicky']),
     notionUrl: page.url,
     alcance: extractNumber(p['Alcance']),
+    visualizaciones: extractNumber(p['Visualizaciones']),
+    meGusta: extractNumber(p['Me gusta']),
+    comentarios: extractNumber(p['Comentarios']),
     guardados: extractNumber(p['Guardados']),
     compartidos: extractNumber(p['Compartidos']),
-    comentarios: extractNumber(p['Comentarios']),
+    seguimientos: extractNumber(p['Seguimientos']),
+    engagement: extractNumber(p['Engagement']),
     leadMagnets: extractNumber(p['Lead magnets']),
   }
 }
@@ -125,14 +129,26 @@ function buildProperties(data: Partial<CreatePostInput>): Record<string, unknown
   if (data.alcance !== undefined) {
     props['Alcance'] = { number: data.alcance }
   }
+  if (data.visualizaciones !== undefined) {
+    props['Visualizaciones'] = { number: data.visualizaciones }
+  }
+  if (data.meGusta !== undefined) {
+    props['Me gusta'] = { number: data.meGusta }
+  }
+  if (data.comentarios !== undefined) {
+    props['Comentarios'] = { number: data.comentarios }
+  }
   if (data.guardados !== undefined) {
     props['Guardados'] = { number: data.guardados }
   }
   if (data.compartidos !== undefined) {
     props['Compartidos'] = { number: data.compartidos }
   }
-  if (data.comentarios !== undefined) {
-    props['Comentarios'] = { number: data.comentarios }
+  if (data.seguimientos !== undefined) {
+    props['Seguimientos'] = { number: data.seguimientos }
+  }
+  if (data.engagement !== undefined) {
+    props['Engagement'] = { number: data.engagement }
   }
   if (data.leadMagnets !== undefined) {
     props['Lead magnets'] = { number: data.leadMagnets }

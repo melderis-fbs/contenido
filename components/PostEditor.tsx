@@ -39,9 +39,13 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
     notas: post.notas,
     notasVicky: post.notasVicky,
     alcance: post.alcance,
+    visualizaciones: post.visualizaciones,
+    meGusta: post.meGusta,
+    comentarios: post.comentarios,
     guardados: post.guardados,
     compartidos: post.compartidos,
-    comentarios: post.comentarios,
+    seguimientos: post.seguimientos,
+    engagement: post.engagement,
     leadMagnets: post.leadMagnets,
   })
 
@@ -70,9 +74,13 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
       notas: post.notas,
       notasVicky: post.notasVicky,
       alcance: post.alcance,
+      visualizaciones: post.visualizaciones,
+      meGusta: post.meGusta,
+      comentarios: post.comentarios,
       guardados: post.guardados,
       compartidos: post.compartidos,
-      comentarios: post.comentarios,
+      seguimientos: post.seguimientos,
+      engagement: post.engagement,
       leadMagnets: post.leadMagnets,
     })
   }, [post.id])
@@ -458,44 +466,20 @@ export default function PostEditor({ post, onClose, onCreate, onUpdate, onDelete
                   </span>
                 </div>
                 <p className="text-[11px] mb-3" style={{ color: '#9a877d' }}>
-                  Las métricas que más importan: guardados, compartidos y leads.
+                  ⭐ guardados, compartidos y leads son los que más importan
                 </p>
                 <div className="grid grid-cols-2 gap-3">
-                  <MetricInput
-                    label="Alcance"
-                    value={form.alcance}
-                    onChange={(v) => set('alcance', v)}
-                    placeholder="0"
-                  />
-                  <MetricInput
-                    label="Comentarios"
-                    value={form.comentarios}
-                    onChange={(v) => set('comentarios', v)}
-                    placeholder="0"
-                  />
-                  <MetricInput
-                    label="Guardados ⭐"
-                    value={form.guardados}
-                    onChange={(v) => set('guardados', v)}
-                    placeholder="0"
-                    highlight
-                  />
-                  <MetricInput
-                    label="Compartidos ⭐"
-                    value={form.compartidos}
-                    onChange={(v) => set('compartidos', v)}
-                    placeholder="0"
-                    highlight
-                  />
+                  <MetricInput label="Alcance" value={form.alcance} onChange={(v) => set('alcance', v)} placeholder="0" />
+                  <MetricInput label="Visualizaciones" value={form.visualizaciones} onChange={(v) => set('visualizaciones', v)} placeholder="0" />
+                  <MetricInput label="Me gusta" value={form.meGusta} onChange={(v) => set('meGusta', v)} placeholder="0" />
+                  <MetricInput label="Comentarios" value={form.comentarios} onChange={(v) => set('comentarios', v)} placeholder="0" />
+                  <MetricInput label="Guardados ⭐" value={form.guardados} onChange={(v) => set('guardados', v)} placeholder="0" highlight />
+                  <MetricInput label="Compartidos ⭐" value={form.compartidos} onChange={(v) => set('compartidos', v)} placeholder="0" highlight />
+                  <MetricInput label="Seguimientos" value={form.seguimientos} onChange={(v) => set('seguimientos', v)} placeholder="0" />
+                  <MetricInput label="Engagement %" value={form.engagement} onChange={(v) => set('engagement', v)} placeholder="0.0" isDecimal />
                 </div>
                 <div className="mt-3">
-                  <MetricInput
-                    label="Lead magnets / DMs ⭐⭐"
-                    value={form.leadMagnets}
-                    onChange={(v) => set('leadMagnets', v)}
-                    placeholder="0"
-                    highlight
-                  />
+                  <MetricInput label="Lead magnets / DMs ⭐⭐" value={form.leadMagnets} onChange={(v) => set('leadMagnets', v)} placeholder="0" highlight />
                 </div>
               </div>
             </>
@@ -623,12 +607,14 @@ function MetricInput({
   onChange,
   placeholder,
   highlight = false,
+  isDecimal = false,
 }: {
   label: string
   value: number | null
   onChange: (v: number | null) => void
   placeholder?: string
   highlight?: boolean
+  isDecimal?: boolean
 }) {
   return (
     <div>
@@ -636,6 +622,7 @@ function MetricInput({
       <input
         type="number"
         min="0"
+        step={isDecimal ? '0.1' : '1'}
         value={value ?? ''}
         onChange={(e) => onChange(e.target.value === '' ? null : Number(e.target.value))}
         placeholder={placeholder}

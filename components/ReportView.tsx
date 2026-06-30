@@ -58,7 +58,7 @@ function exportWeeklyCSV(posts: Post[], weekLabel: string) {
 }
 
 function exportMonthlyCSV(posts: Post[], monthKey: string) {
-  const headers = ['Fecha', 'Canal', 'Formato', 'Pilar', 'Título', 'Alcance', 'Guardados', 'Compartidos', 'Comentarios', 'Lead magnets', 'Link publicado']
+  const headers = ['Fecha', 'Canal', 'Formato', 'Pilar', 'Título', 'Alcance', 'Visualizaciones', 'Me gusta', 'Comentarios', 'Guardados', 'Compartidos', 'Seguimientos', 'Engagement %', 'Lead magnets', 'Link publicado']
   const rows = posts.map((p) => [
     p.fecha ? format(parsePostDate(p.fecha), 'dd/MM/yyyy') : '',
     p.canal ?? '',
@@ -66,9 +66,13 @@ function exportMonthlyCSV(posts: Post[], monthKey: string) {
     p.pilar ?? '',
     p.titulo || '',
     String(p.alcance ?? ''),
+    String(p.visualizaciones ?? ''),
+    String(p.meGusta ?? ''),
+    String(p.comentarios ?? ''),
     String(p.guardados ?? ''),
     String(p.compartidos ?? ''),
-    String(p.comentarios ?? ''),
+    String(p.seguimientos ?? ''),
+    String(p.engagement ?? ''),
     String(p.leadMagnets ?? ''),
     p.linkPublicado ?? '',
   ])
@@ -153,11 +157,13 @@ ARCHIVOS QUE TE VAN A PASAR:
 // ─── Analytics helpers ────────────────────────────────────────────────────────
 
 function engagementScore(p: Post): number {
-  return (p.leadMagnets ?? 0) * 3 + (p.guardados ?? 0) * 2 + (p.compartidos ?? 0) * 2 + (p.comentarios ?? 0) + (p.alcance ?? 0) * 0.01
+  // If we have the real engagement %, use it directly (×10 to give it appropriate weight)
+  if (p.engagement !== null && p.engagement !== undefined) return p.engagement * 10
+  return (p.leadMagnets ?? 0) * 3 + (p.guardados ?? 0) * 2 + (p.compartidos ?? 0) * 2 + (p.meGusta ?? 0) + (p.comentarios ?? 0) + (p.alcance ?? 0) * 0.01
 }
 
 function hasAnyMetrics(p: Post): boolean {
-  return [p.alcance, p.guardados, p.compartidos, p.comentarios, p.leadMagnets].some(
+  return [p.alcance, p.visualizaciones, p.meGusta, p.guardados, p.compartidos, p.comentarios, p.seguimientos, p.engagement, p.leadMagnets].some(
     (v) => v !== null && v !== undefined,
   )
 }
@@ -217,16 +223,26 @@ export default function ReportView({ posts, onEditPost }: Props) {
       .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
   }, [posts, currentMonth])
 
-  const monthTotals = useMemo(() => monthPosts.reduce(
-    (acc, p) => ({
-      alcance: acc.alcance + (p.alcance ?? 0),
-      guardados: acc.guardados + (p.guardados ?? 0),
-      compartidos: acc.compartidos + (p.compartidos ?? 0),
-      comentarios: acc.comentarios + (p.comentarios ?? 0),
-      leadMagnets: acc.leadMagnets + (p.leadMagnets ?? 0),
-    }),
-    { alcance: 0, guardados: 0, compartidos: 0, comentarios: 0, leadMagnets: 0 },
-  ), [monthPosts])
+  const monthTotals = useMemo(() => {
+    const postsWithEngagement = monthPosts.filter(p => p.engagement !== null && p.engagement !== undefined)
+    const avgEngagement = postsWithEngagement.length > 0
+      ? postsWithEngagement.reduce((s, p) => s + (p.engagement ?? 0), 0) / postsWithEngagement.length
+      : null
+    return monthPosts.reduce(
+      (acc, p) => ({
+        alcance: acc.alcance + (p.alcance ?? 0),
+        visualizaciones: acc.visualizaciones + (p.visualizaciones ?? 0),
+        meGusta: acc.meGusta + (p.meGusta ?? 0),
+        comentarios: acc.comentarios + (p.comentarios ?? 0),
+        guardados: acc.guardados + (p.guardados ?? 0),
+        compartidos: acc.compartidos + (p.compartidos ?? 0),
+        seguimientos: acc.seguimientos + (p.seguimientos ?? 0),
+        leadMagnets: acc.leadMagnets + (p.leadMagnets ?? 0),
+        avgEngagement,
+      }),
+      { alcance: 0, visualizaciones: 0, meGusta: 0, comentarios: 0, guardados: 0, compartidos: 0, seguimientos: 0, leadMagnets: 0, avgEngagement },
+    )
+  }, [monthPosts])
 
   const postsWithMetrics = useMemo(() => monthPosts.filter(hasAnyMetrics), [monthPosts])
 
@@ -241,14 +257,20 @@ export default function ReportView({ posts, onEditPost }: Props) {
   )
 
   const formatBreakdown = useMemo(() => {
-    const map: Record<string, { count: number; guardados: number; compartidos: number; leads: number }> = {}
+    const map: Record<string, { count: number; meGusta: number; guardados: number; compartidos: number; seguimientos: number; leads: number; engSum: number; engCount: number }> = {}
     for (const p of monthPosts) {
       const fmt = p.formato ?? '—'
-      if (!map[fmt]) map[fmt] = { count: 0, guardados: 0, compartidos: 0, leads: 0 }
+      if (!map[fmt]) map[fmt] = { count: 0, meGusta: 0, guardados: 0, compartidos: 0, seguimientos: 0, leads: 0, engSum: 0, engCount: 0 }
       map[fmt].count++
+      map[fmt].meGusta += p.meGusta ?? 0
       map[fmt].guardados += p.guardados ?? 0
       map[fmt].compartidos += p.compartidos ?? 0
+      map[fmt].seguimientos += p.seguimientos ?? 0
       map[fmt].leads += p.leadMagnets ?? 0
+      if (p.engagement !== null && p.engagement !== undefined) {
+        map[fmt].engSum += p.engagement
+        map[fmt].engCount++
+      }
     }
     return Object.entries(map).sort((a, b) => b[1].count - a[1].count)
   }, [monthPosts])
@@ -477,13 +499,17 @@ export default function ReportView({ posts, onEditPost }: Props) {
 
           {/* Totals */}
           {monthPosts.length > 0 && (
-            <div className="grid grid-cols-2 sm:grid-cols-5 gap-3">
+            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
               {[
                 { label: 'Alcance', value: monthTotals.alcance, star: false },
+                { label: 'Visualizaciones', value: monthTotals.visualizaciones, star: false },
+                { label: 'Me gusta', value: monthTotals.meGusta, star: false },
                 { label: 'Comentarios', value: monthTotals.comentarios, star: false },
+                { label: 'Seguimientos', value: monthTotals.seguimientos, star: false },
                 { label: 'Guardados', value: monthTotals.guardados, star: true },
                 { label: 'Compartidos', value: monthTotals.compartidos, star: true },
                 { label: 'Lead magnets', value: monthTotals.leadMagnets, star: true },
+                { label: 'Eng. promedio', value: monthTotals.avgEngagement, star: true, isPercent: true },
               ].map((m) => (
                 <div
                   key={m.label}
@@ -493,11 +519,15 @@ export default function ReportView({ posts, onEditPost }: Props) {
                     border: `1px solid ${m.star ? '#c6b29740' : '#e7e3d7'}`,
                   }}
                 >
-                  <span className="text-[11px]" style={{ color: '#9a877d' }}>
+                  <span className="text-[10px] leading-tight" style={{ color: '#9a877d' }}>
                     {m.label}{m.star && ' ⭐'}
                   </span>
-                  <span className="text-lg font-semibold tabular-nums">
-                    {m.value > 0 ? m.value.toLocaleString('es-AR') : <span style={{ color: '#9a877d' }}>—</span>}
+                  <span className="text-base font-semibold tabular-nums">
+                    {m.value !== null && m.value !== undefined && m.value > 0
+                      ? m.isPercent
+                        ? `${(m.value as number).toFixed(1)}%`
+                        : (m.value as number).toLocaleString('es-AR')
+                      : <span style={{ color: '#9a877d' }}>—</span>}
                   </span>
                 </div>
               ))}
@@ -640,7 +670,7 @@ function PostsTable({
   showMetrics: boolean
 }) {
   const cols = showMetrics
-    ? '80px 1fr 70px 55px 55px 55px 55px'
+    ? '72px 1fr 55px 50px 50px 50px 54px 50px'
     : '80px 80px 80px 1fr'
 
   return (
@@ -657,10 +687,11 @@ function PostsTable({
           {showMetrics ? (
             <>
               <span>Título</span>
-              <span className="text-right">Alcance</span>
-              <span className="text-right">Guard.</span>
-              <span className="text-right">Comp.</span>
-              <span className="text-right">Com.</span>
+              <span className="text-right">Likes</span>
+              <span className="text-right">Guard.⭐</span>
+              <span className="text-right">Comp.⭐</span>
+              <span className="text-right">Seg.</span>
+              <span className="text-right">Eng.%⭐</span>
               <span className="text-right">Leads⭐</span>
             </>
           ) : (
@@ -687,10 +718,13 @@ function PostsTable({
                   {post.canal && <span className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ background: CANAL_COLORS[post.canal] }} />}
                   {post.titulo || '—'}
                 </span>
-                <MetricCell value={post.alcance} />
+                <MetricCell value={post.meGusta} />
                 <MetricCell value={post.guardados} highlight />
                 <MetricCell value={post.compartidos} highlight />
-                <MetricCell value={post.comentarios} />
+                <MetricCell value={post.seguimientos} />
+                <span className="text-right tabular-nums text-xs" style={{ color: post.engagement !== null && post.engagement !== undefined ? '#282727' : '#9a877d' }}>
+                  {post.engagement !== null && post.engagement !== undefined ? `${post.engagement.toFixed(1)}%` : '—'}
+                </span>
                 <MetricCell value={post.leadMagnets} highlight />
               </>
             ) : (
@@ -833,7 +867,7 @@ function MonthlyAnalytics({
 }: {
   topPosts: Post[]
   bottomPosts: Post[]
-  formatBreakdown: [string, { count: number; guardados: number; compartidos: number; leads: number }][]
+  formatBreakdown: [string, { count: number; meGusta: number; guardados: number; compartidos: number; seguimientos: number; leads: number; engSum: number; engCount: number }][]
   hasMetrics: boolean
   onEditPost: (p: Post) => void
 }) {
@@ -886,27 +920,36 @@ function MonthlyAnalytics({
         <div className="rounded-xl border overflow-hidden" style={{ borderColor: '#e7e3d7' }}>
           <div
             className="grid text-[11px] font-semibold uppercase tracking-wide px-4 py-2"
-            style={{ gridTemplateColumns: '1fr 50px 55px 55px 55px', background: '#f3f1ea', color: '#9a877d', borderBottom: '1px solid #e7e3d7' }}
+            style={{ gridTemplateColumns: '1fr 44px 50px 50px 50px 56px 50px', background: '#f3f1ea', color: '#9a877d', borderBottom: '1px solid #e7e3d7' }}
           >
             <span>Formato</span>
             <span className="text-right">Posts</span>
-            <span className="text-right">Guard.</span>
-            <span className="text-right">Comp.</span>
+            <span className="text-right">Likes</span>
+            <span className="text-right">Guard.⭐</span>
+            <span className="text-right">Comp.⭐</span>
+            <span className="text-right">Eng.%⭐</span>
             <span className="text-right">Leads⭐</span>
           </div>
-          {formatBreakdown.map(([fmt, stats], i) => (
-            <div
-              key={fmt}
-              className="grid text-xs px-4 py-2.5"
-              style={{ gridTemplateColumns: '1fr 50px 55px 55px 55px', borderTop: i > 0 ? '1px solid #e7e3d7' : undefined }}
-            >
-              <span className="font-medium">{fmt}</span>
-              <span className="text-right tabular-nums" style={{ color: '#9a877d' }}>{stats.count}</span>
-              <MetricCell value={stats.guardados || null} highlight />
-              <MetricCell value={stats.compartidos || null} highlight />
-              <MetricCell value={stats.leads || null} highlight />
-            </div>
-          ))}
+          {formatBreakdown.map(([fmt, stats], i) => {
+            const avgEng = stats.engCount > 0 ? stats.engSum / stats.engCount : null
+            return (
+              <div
+                key={fmt}
+                className="grid text-xs px-4 py-2.5"
+                style={{ gridTemplateColumns: '1fr 44px 50px 50px 50px 56px 50px', borderTop: i > 0 ? '1px solid #e7e3d7' : undefined }}
+              >
+                <span className="font-medium">{fmt}</span>
+                <span className="text-right tabular-nums" style={{ color: '#9a877d' }}>{stats.count}</span>
+                <MetricCell value={stats.meGusta || null} />
+                <MetricCell value={stats.guardados || null} highlight />
+                <MetricCell value={stats.compartidos || null} highlight />
+                <span className="text-right tabular-nums text-xs" style={{ color: avgEng !== null ? '#282727' : '#9a877d' }}>
+                  {avgEng !== null ? `${avgEng.toFixed(1)}%` : '—'}
+                </span>
+                <MetricCell value={stats.leads || null} highlight />
+              </div>
+            )
+          })}
         </div>
       )}
     </div>
@@ -914,6 +957,15 @@ function MonthlyAnalytics({
 }
 
 function RankRow({ post, medal, onEdit, isBottom = false }: { post: Post; medal: string; onEdit: (p: Post) => void; isBottom?: boolean }) {
+  const metricColor = isBottom ? '#9a877d' : '#282727'
+  const bits = [
+    post.engagement !== null && post.engagement !== undefined ? `${post.engagement.toFixed(1)}% eng.` : null,
+    post.leadMagnets ? `${post.leadMagnets} leads` : null,
+    post.guardados ? `${post.guardados} guard.` : null,
+    post.compartidos ? `${post.compartidos} comp.` : null,
+    post.meGusta ? `${post.meGusta} likes` : null,
+  ].filter(Boolean)
+
   return (
     <button
       onClick={() => onEdit(post)}
@@ -930,11 +982,11 @@ function RankRow({ post, medal, onEdit, isBottom = false }: { post: Post; medal:
           {post.formato && (
             <span className="text-[10px]" style={{ color: '#9a877d' }}>{post.formato}</span>
           )}
-          <span className="text-[10px] tabular-nums" style={{ color: isBottom ? '#9a877d' : '#282727' }}>
-            {post.leadMagnets ? `${post.leadMagnets} leads · ` : ''}
-            {post.guardados ? `${post.guardados} guard. · ` : ''}
-            {post.compartidos ? `${post.compartidos} comp.` : ''}
-          </span>
+          {bits.length > 0 && (
+            <span className="text-[10px] tabular-nums" style={{ color: metricColor }}>
+              {bits.join(' · ')}
+            </span>
+          )}
         </div>
       </div>
     </button>

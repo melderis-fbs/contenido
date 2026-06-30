@@ -39,9 +39,13 @@ const EMPTY_POST = (canal: Canal, fecha: string): Post => ({
   notasVicky: '',
   notionUrl: '',
   alcance: null,
+  visualizaciones: null,
+  meGusta: null,
+  comentarios: null,
   guardados: null,
   compartidos: null,
-  comentarios: null,
+  seguimientos: null,
+  engagement: null,
   leadMagnets: null,
 })
 
@@ -182,9 +186,13 @@ export default function Home() {
       notas: editingPost.notas,
       notasVicky: editingPost.notasVicky,
       alcance: null,
+      visualizaciones: null,
+      meGusta: null,
+      comentarios: null,
       guardados: null,
       compartidos: null,
-      comentarios: null,
+      seguimientos: null,
+      engagement: null,
       leadMagnets: null,
     })
     setEditingPost(newPost)

@@ -92,9 +92,13 @@ export interface Post {
   notionUrl: string
   // Métricas post-publicación
   alcance: number | null
+  visualizaciones: number | null
+  meGusta: number | null
+  comentarios: number | null
   guardados: number | null
   compartidos: number | null
-  comentarios: number | null
+  seguimientos: number | null
+  engagement: number | null  // engagement rate %
   leadMagnets: number | null
 }
 
