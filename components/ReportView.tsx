@@ -223,25 +223,25 @@ export default function ReportView({ posts, onEditPost }: Props) {
       .sort((a, b) => (a.fecha || '').localeCompare(b.fecha || ''))
   }, [posts, currentMonth])
 
-  const monthTotals = useMemo(() => {
-    const postsWithEngagement = monthPosts.filter(p => p.engagement !== null && p.engagement !== undefined)
-    const avgEngagement = postsWithEngagement.length > 0
-      ? postsWithEngagement.reduce((s, p) => s + (p.engagement ?? 0), 0) / postsWithEngagement.length
-      : null
-    return monthPosts.reduce(
-      (acc, p) => ({
-        alcance: acc.alcance + (p.alcance ?? 0),
-        visualizaciones: acc.visualizaciones + (p.visualizaciones ?? 0),
-        meGusta: acc.meGusta + (p.meGusta ?? 0),
-        comentarios: acc.comentarios + (p.comentarios ?? 0),
-        guardados: acc.guardados + (p.guardados ?? 0),
-        compartidos: acc.compartidos + (p.compartidos ?? 0),
-        seguimientos: acc.seguimientos + (p.seguimientos ?? 0),
-        leadMagnets: acc.leadMagnets + (p.leadMagnets ?? 0),
-        avgEngagement,
-      }),
-      { alcance: 0, visualizaciones: 0, meGusta: 0, comentarios: 0, guardados: 0, compartidos: 0, seguimientos: 0, leadMagnets: 0, avgEngagement },
-    )
+  const canalTotals = useMemo(() => {
+    const map: Record<string, { count: number; visualizaciones: number; meGusta: number; comentarios: number; guardados: number; compartidos: number; seguimientos: number; leadMagnets: number; engSum: number; engCount: number }> = {}
+    for (const p of monthPosts) {
+      const c = p.canal ?? '(sin canal)'
+      if (!map[c]) map[c] = { count: 0, visualizaciones: 0, meGusta: 0, comentarios: 0, guardados: 0, compartidos: 0, seguimientos: 0, leadMagnets: 0, engSum: 0, engCount: 0 }
+      map[c].count++
+      map[c].visualizaciones += p.visualizaciones ?? 0
+      map[c].meGusta += p.meGusta ?? 0
+      map[c].comentarios += p.comentarios ?? 0
+      map[c].guardados += p.guardados ?? 0
+      map[c].compartidos += p.compartidos ?? 0
+      map[c].seguimientos += p.seguimientos ?? 0
+      map[c].leadMagnets += p.leadMagnets ?? 0
+      if (p.engagement !== null && p.engagement !== undefined) {
+        map[c].engSum += p.engagement
+        map[c].engCount++
+      }
+    }
+    return map
   }, [monthPosts])
 
   const postsWithMetrics = useMemo(() => monthPosts.filter(hasAnyMetrics), [monthPosts])
@@ -497,41 +497,9 @@ export default function ReportView({ posts, onEditPost }: Props) {
             </span>
           </div>
 
-          {/* Totals */}
+          {/* Per-canal totals table */}
           {monthPosts.length > 0 && (
-            <div className="grid grid-cols-3 sm:grid-cols-5 gap-2.5">
-              {[
-                { label: 'Alcance', value: monthTotals.alcance, star: false },
-                { label: 'Visualizaciones', value: monthTotals.visualizaciones, star: false },
-                { label: 'Me gusta', value: monthTotals.meGusta, star: false },
-                { label: 'Comentarios', value: monthTotals.comentarios, star: false },
-                { label: 'Seguimientos', value: monthTotals.seguimientos, star: false },
-                { label: 'Guardados', value: monthTotals.guardados, star: true },
-                { label: 'Compartidos', value: monthTotals.compartidos, star: true },
-                { label: 'Lead magnets', value: monthTotals.leadMagnets, star: true },
-                { label: 'Eng. promedio', value: monthTotals.avgEngagement, star: true, isPercent: true },
-              ].map((m) => (
-                <div
-                  key={m.label}
-                  className="rounded-xl p-3 flex flex-col gap-1"
-                  style={{
-                    background: m.star ? '#c6b29712' : '#f3f1ea',
-                    border: `1px solid ${m.star ? '#c6b29740' : '#e7e3d7'}`,
-                  }}
-                >
-                  <span className="text-[10px] leading-tight" style={{ color: '#9a877d' }}>
-                    {m.label}{m.star && ' ⭐'}
-                  </span>
-                  <span className="text-base font-semibold tabular-nums">
-                    {m.value !== null && m.value !== undefined && m.value > 0
-                      ? m.isPercent
-                        ? `${(m.value as number).toFixed(1)}%`
-                        : (m.value as number).toLocaleString('es-AR')
-                      : <span style={{ color: '#9a877d' }}>—</span>}
-                  </span>
-                </div>
-              ))}
-            </div>
+            <CanalTotalsTable canalTotals={canalTotals} />
           )}
 
           {/* Analytics: Top 3 / Bottom 3 / Format breakdown */}
@@ -853,6 +821,83 @@ function MetricCell({ value, highlight = false }: { value: number | null; highli
     <span className="text-right tabular-nums" style={{ color: value !== null && highlight ? '#282727' : '#9a877d' }}>
       {value !== null ? value.toLocaleString('es-AR') : '—'}
     </span>
+  )
+}
+
+type CanalStats = { count: number; visualizaciones: number; meGusta: number; comentarios: number; guardados: number; compartidos: number; seguimientos: number; leadMagnets: number; engSum: number; engCount: number }
+
+function CanalTotalsTable({ canalTotals }: { canalTotals: Record<string, CanalStats> }) {
+  const rows = Object.entries(canalTotals)
+  if (rows.length === 0) return null
+
+  const cols = [
+    { key: 'visualizaciones', label: 'Visual.' },
+    { key: 'meGusta', label: 'Likes' },
+    { key: 'comentarios', label: 'Com.' },
+    { key: 'guardados', label: 'Guard.⭐', star: true },
+    { key: 'compartidos', label: 'Comp.⭐', star: true },
+    { key: 'seguimientos', label: 'Seg.' },
+    { key: 'eng', label: 'Eng.%⭐', star: true },
+    { key: 'leadMagnets', label: 'Leads⭐', star: true },
+  ]
+
+  return (
+    <div>
+      <h3 className="text-xs font-semibold uppercase tracking-wide mb-2" style={{ color: '#9a877d' }}>
+        Métricas por cuenta
+      </h3>
+      <div className="overflow-x-auto rounded-xl border" style={{ borderColor: '#e7e3d7' }}>
+        <table className="w-full text-xs" style={{ minWidth: 560, borderCollapse: 'collapse' }}>
+          <thead>
+            <tr style={{ background: '#f3f1ea', borderBottom: '1px solid #e7e3d7' }}>
+              <th className="text-left px-4 py-2.5 font-semibold uppercase tracking-wide text-[11px]" style={{ color: '#9a877d' }}>
+                Cuenta
+              </th>
+              <th className="text-right px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px]" style={{ color: '#9a877d' }}>
+                Posts
+              </th>
+              {cols.map((c) => (
+                <th key={c.key} className="text-right px-3 py-2.5 font-semibold uppercase tracking-wide text-[11px]" style={{ color: c.star ? '#c6b297' : '#9a877d' }}>
+                  {c.label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map(([canal, s], i) => {
+              const avgEng = s.engCount > 0 ? s.engSum / s.engCount : null
+              return (
+                <tr key={canal} style={{ borderTop: i > 0 ? '1px solid #e7e3d7' : undefined }}>
+                  <td className="px-4 py-2.5 font-medium flex items-center gap-2">
+                    <span
+                      className="w-2 h-2 rounded-full flex-shrink-0 inline-block"
+                      style={{ background: CANAL_COLORS[canal as keyof typeof CANAL_COLORS] ?? '#9a877d' }}
+                    />
+                    {canal}
+                  </td>
+                  <td className="text-right px-3 py-2.5 tabular-nums" style={{ color: '#9a877d' }}>{s.count}</td>
+                  {cols.map((c) => {
+                    if (c.key === 'eng') {
+                      return (
+                        <td key="eng" className="text-right px-3 py-2.5 tabular-nums font-medium" style={{ color: avgEng !== null ? '#282727' : '#9a877d' }}>
+                          {avgEng !== null ? `${avgEng.toFixed(1)}%` : '—'}
+                        </td>
+                      )
+                    }
+                    const val = s[c.key as keyof CanalStats] as number
+                    return (
+                      <td key={c.key} className="text-right px-3 py-2.5 tabular-nums" style={{ color: val > 0 ? (c.star ? '#282727' : '#6b7280') : '#9a877d' }}>
+                        {val > 0 ? val.toLocaleString('es-AR') : '—'}
+                      </td>
+                    )
+                  })}
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
   )
 }
 
